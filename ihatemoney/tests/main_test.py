@@ -4,6 +4,7 @@ import socket
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy import orm
+from sqlalchemy.orm import subqueryload
 from werkzeug.security import check_password_hash
 
 from ihatemoney import models
@@ -220,7 +221,7 @@ class TestModels(IhatemoneyTestCase):
         project = models.Project.query.get_by_name(name="raclette")
         zorglub = models.Person.query.get_by_name(name="zorglub", project=project)
         zorglub_bills = models.Bill.query.options(
-            orm.subqueryload(models.Bill.owers)
+            subqueryload(models.Bill.owers)
         ).filter(models.Bill.owers.contains(zorglub))
         for bill in zorglub_bills.all():
             if bill.what == "red wine":

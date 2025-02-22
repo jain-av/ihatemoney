@@ -325,8 +325,8 @@ class TestAPI(IhatemoneyTestCase):
         )
 
         self.assertStatus(200, req)
-        assert "Jeanne" == json.loads(req.data.decode("utf-8"))["name"]
-        assert 2 == json.loads(req.data.decode("utf-8"))["weight"]
+        assert json.loads(req.data.decode("utf-8"))["name"] == "Jeanne"
+        assert json.loads(req.data.decode("utf-8"))["weight"] == 2
 
         # edit this member with same information
         # (test PUT idempotence)
@@ -453,7 +453,7 @@ class TestAPI(IhatemoneyTestCase):
             "/api/projects/raclette/bills", headers=self.get_auth("raclette")
         )
         self.assertStatus(200, req)
-        assert 1 == len(json.loads(req.data.decode("utf-8")))
+        assert len(json.loads(req.data.decode("utf-8"))) == 1
 
         # edit with errors should return an error
         req = self.client.put(
@@ -906,7 +906,7 @@ class TestAPI(IhatemoneyTestCase):
         }
         got = json.loads(req.data.decode("utf-8"))
         assert (
-            creation_date
+            datetime.date.today()
             == datetime.datetime.strptime(got["creation_date"], "%Y-%m-%d").date()
         )
         del got["creation_date"]
