@@ -1,4 +1,4 @@
-from markupsafe import Markup
+from markupsafe import unescape
 
 
 def em_surround(string, regex_escape=False):
@@ -12,5 +12,5 @@ def extract_link(data, start_prefix):
     base_index = data.find(start_prefix)
     start = data.find('href="', base_index) + 6
     end = data.find('">', base_index)
-    link = Markup(data[start:end]).unescape()
+    link = unescape(data[start:end])
     return link
