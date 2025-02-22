@@ -9,3 +9,4 @@ def compile_catalogs():
     cmd.statistics = True
     cmd.finalize_options()
     cmd.run()
+
