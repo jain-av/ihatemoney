@@ -33,7 +33,7 @@ class ConditionalVersioningManager(VersioningManager):
             # At least one call to unit_of_work() needs to be made against the
             # session object to prevent a KeyError later. This doesn't create
             # a version or transaction entry
-            self.unit_of_work(session)
+            self.uow(session)
 
     def after_flush(self, session, flush_context):
         if self.tracking_predicate():
@@ -42,7 +42,7 @@ class ConditionalVersioningManager(VersioningManager):
             # At least one call to unit_of_work() needs to be made against the
             # session object to prevent a KeyError later. This doesn't create
             # a version or transaction entry
-            self.unit_of_work(session)
+            self.uow(session)
 
 
 def version_privacy_predicate():

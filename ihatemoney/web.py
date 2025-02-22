@@ -159,7 +159,7 @@ def pull_project(endpoint, values):
     entered_project_id = values.pop("project_id", None)
     if entered_project_id:
         project_id = entered_project_id.lower()
-        project = Project.query.get(project_id)
+        project = db.session.get(Project, project_id)
         if not project:
             raise Redirect303(url_for(".create_project", project_id=project_id))
 
@@ -263,7 +263,7 @@ def authenticate(project_id=None):
         form.id.data = request.args["project_id"]
     project_id = form.id.data.lower() if form.id.data else None
 
-    project = Project.query.get(project_id) if project_id is not None else None
+    project = db.session.get(Project, project_id) if project_id is not None else None
     if not project:
         # If the user try to connect to an unexisting project, we will
         # propose him a link to the creation form.
@@ -312,7 +312,6 @@ def home():
         auth_form=auth_form,
         session=session,
     )
-
 
 @main.route("/mobile")
 def mobile():
@@ -371,7 +370,7 @@ def remind_password():
     if request.method == "POST":
         if form.validate():
             # get the project
-            project = Project.query.get(form.id.data)
+            project = db.session.get(Project, form.id.data)
             # send a link to reset the password
             remind_message = Message(
                 "password recovery",
@@ -410,7 +409,7 @@ def reset_password():
         return render_template(
             "reset_password.html", form=form, error=_("Invalid token")
         )
-    project = Project.query.get(project_id)
+    project = db.session.get(Project, project_id)
     if not project:
         return render_template(
             "reset_password.html", form=form, error=_("Unknown project")
@@ -591,13 +590,14 @@ def demo():
     If the demo project is deactivated, redirects to the create project form.
     """
     is_demo_project_activated = current_app.config["ACTIVATE_DEMO_PROJECT"]
-    project = Project.query.get("demo")
+    project = db.session.get(Project, "demo")
 
     if not project and not is_demo_project_activated:
         raise Redirect303(url_for(".create_project", project_id="demo"))
     if not project and is_demo_project_activated:
         project = Project.create_demo_project()
     session[project.id] = True
+    db.session.commit()
     return redirect(url_for(".list_bills", project_id=project.id))
 
 
@@ -884,7 +884,7 @@ def add_settlement_bill():
     settlement = Bill(
         amount=form.amount.data,
         date=datetime.datetime.today(),
-        owers=[Person.query.get(receiver_id, g.project)],
+        owers=[db.session.get(Person, receiver_id)],
         payer_id=sender_id,
         project_default_currency=g.project.default_currency,
         bill_type=BillType.REIMBURSEMENT,

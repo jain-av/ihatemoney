@@ -7,12 +7,13 @@ from babel.dates import LOCALTZ
 from flask import Flask, g, render_template, request, session
 from flask_babel import Babel, format_currency
 from flask_mail import Mail
-from flask_migrate import Migrate, stamp, upgrade
+from flask_migrate import Migrate
 from flask_talisman import Talisman
 from jinja2 import pass_context
 from markupsafe import Markup
 import pytz
 from werkzeug.middleware.proxy_fix import ProxyFix
+from sqlalchemy import create_engine
 
 from ihatemoney import default_settings
 from ihatemoney.api.v1 import api as apiv1
@@ -36,9 +37,10 @@ def setup_database(app):
 
     def _pre_alembic_db():
         """Checks if we are migrating from a pre-alembic ihatemoney"""
-        con = db.engine.connect()
-        tables_exist = db.engine.dialect.has_table(con, "project")
-        alembic_setup = db.engine.dialect.has_table(con, "alembic_version")
+        engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
+        with engine.connect() as con:
+            tables_exist = engine.dialect.has_table(con, "project")
+            alembic_setup = engine.dialect.has_table(con, "alembic_version")
         return tables_exist and not alembic_setup
 
     sqlalchemy_url = app.config.get("SQLALCHEMY_DATABASE_URI")
@@ -57,11 +59,24 @@ def setup_database(app):
     if _pre_alembic_db():
         with app.app_context():
             # fake the first migration
-            stamp(migrations_path, revision="b9a10d5d63ce")
+            with db.engine.begin() as connection:
+                connection.execute(
+                    db.metadata.tables["alembic_version"].insert().values(
+                        version_num="b9a10d5d63ce"
+                    )
+                )
 
     # auto-execute migrations on runtime
     with app.app_context():
-        upgrade(migrations_path)
+        # upgrade(migrations_path)
+        with create_engine(app.config["SQLALCHEMY_DATABASE_URI"]).begin() as connection:
+            from alembic.config import Config
+            from alembic import command
+
+            alembic_cfg = Config()
+            alembic_cfg.set_main_option("script_location", migrations_path)
+            alembic_cfg.attributes["connection"] = connection
+            command.upgrade(alembic_cfg, "head")
 
 
 def load_configuration(app, configuration=None):

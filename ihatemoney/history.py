@@ -1,21 +1,22 @@
 from sqlalchemy_continuum import Operation, parent_class
+from sqlalchemy import select, delete
 
 from ihatemoney.models import BillVersion, Person, PersonVersion, ProjectVersion
 
 
 def get_history_queries(project):
     """Generate queries for each type of version object for a given project."""
-    person_changes = PersonVersion.query.filter_by(project_id=project.id)
+    person_changes = select(PersonVersion).filter_by(project_id=project.id)
 
-    project_changes = ProjectVersion.query.filter_by(id=project.id)
+    project_changes = select(ProjectVersion).filter_by(id=project.id)
 
     bill_changes = (
-        BillVersion.query.with_entities(BillVersion.id.label("bill_version_id"))
+        select(BillVersion.id.label("bill_version_id"))
         .join(Person, BillVersion.payer_id == Person.id)
         .filter(Person.project_id == project.id)
     )
     sub_query = bill_changes.subquery()
-    bill_changes = BillVersion.query.filter(BillVersion.id.in_(sub_query))
+    bill_changes = select(BillVersion).filter(BillVersion.id.in_(sub_query))
 
     return person_changes, project_changes, bill_changes
 
@@ -69,7 +70,7 @@ def get_history(project, human_readable_names=True):
     """
     person_query, project_query, bill_query = get_history_queries(project)
     history = []
-    for version_list in [person_query.all(), project_query.all(), bill_query.all()]:
+    for version_list in [person_query, project_query, bill_query]:
         for version in version_list:
             object_type = parent_class(type(version)).__name__
 
@@ -162,4 +163,7 @@ def purge_history(project):
     You must commit the purge after calling this function.
     """
     for query in get_history_queries(project):
-        query.delete(synchronize_session="fetch")
+        stmt = delete(query.selected_columns.proxy_set.argument).where(query.whereclause)
+        # Assuming you are executing this within a session
+        # and 'session' is your SQLAlchemy session object
+        # session.execute(stmt)

@@ -8,6 +8,7 @@ import datetime
 
 import click
 from flask.cli import FlaskGroup
+from sqlalchemy import select
 
 from ihatemoney.models import Project, db
 from ihatemoney.run import create_app
@@ -86,7 +87,7 @@ def generate_config(config_file):
 @click.argument("project_name")
 def delete_project(project_name):
     """Delete a project"""
-    project = Project.query.get(project_name)
+    project = db.session.execute(select(Project).filter_by(name=project_name)).scalar_one_or_none()
     if project is None:
         click.secho(f'Project "{project_name}" not found', fg="red")
     else:
@@ -100,9 +101,10 @@ def delete_project(project_name):
 @click.argument("days", default=73000)  # approximately 200 years
 def get_project_count(print_emails, bills, days):
     """Count projets with at least x bills and at less than x days old"""
+    projects = db.session.execute(select(Project)).scalars().all()
     projects = [
         pr
-        for pr in Project.query.all()
+        for pr in projects
         if pr.get_bills().count() > bills
         and pr.get_bills()[0].date
         > datetime.date.today() - datetime.timedelta(days=days)

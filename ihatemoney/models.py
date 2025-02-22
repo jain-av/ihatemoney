@@ -67,7 +67,7 @@ db = SQLAlchemy()
 class Project(db.Model):
     class ProjectQuery(BaseQuery):
         def get_by_name(self, name):
-            return Project.query.filter(Project.name == name).one()
+            return db.session.execute(sqlalchemy.select(Project).filter(Project.name == name)).scalar_one()
 
     # Direct SQLAlchemy-Continuum to track changes to this model
     __versioned__ = {}
@@ -134,7 +134,7 @@ class Project(db.Model):
         balances, spent, paid, transferred, received = (
             defaultdict(float) for _ in range(5)
         )
-        for bill in self.get_bills_unordered().all():
+        for bill in self.get_bills_unordered().scalars():
             total_weight = sum(ower.weight for ower in bill.owers)
 
             if bill.bill_type == BillType.EXPENSE:
@@ -198,7 +198,7 @@ class Project(db.Model):
         :rtype dict:
         """
         monthly = defaultdict(lambda: defaultdict(float))
-        for bill in self.get_bills_unordered().all():
+        for bill in self.get_bills_unordered().scalars():
             if bill.bill_type == BillType.EXPENSE:
                 monthly[bill.date.year][bill.date.month] += bill.converted_amount
         return monthly
@@ -243,7 +243,7 @@ class Project(db.Model):
 
     def has_bills(self):
         """return if the project do have bills or not"""
-        return self.get_bills_unordered().count() > 0
+        return db.session.execute(self.get_bills_unordered().statement.with_only_columns([Bill.id]).order_by(None)).scalar() is not None
 
     def has_multiple_currencies(self):
         """Returns True if multiple currencies are used"""
@@ -251,7 +251,7 @@ class Project(db.Model):
         # but this is called very rarely so we can tolerate if it's a bit
         # slow. And doing this in Python is much more readable, see #784.
         nb_currencies = len(
-            set(bill.original_currency for bill in self.get_bills_unordered())
+            set(bill.original_currency for bill in self.get_bills_unordered().scalars())
         )
         return nb_currencies > 1
 
@@ -261,22 +261,17 @@ class Project(db.Model):
         # billowers table, which makes access to this data much faster.
         # Without this option, any access to bill.owers would trigger a
         # new SQL query, ruining overall performance.
-        return (
-            Bill.query.options(orm.subqueryload(Bill.owers))
-            .join(Person, Project)
-            .filter(Bill.payer_id == Person.id)
-            .filter(Person.project_id == Project.id)
-            .filter(Project.id == self.id)
-        )
+        stmt = sqlalchemy.select(Bill).options(orm.subqueryload(Bill.owers)).join(Person, Bill.payer_id == Person.id).join(Project, Person.project_id == Project.id).filter(Project.id == self.id)
+        return stmt
 
     def get_bills(self):
         """Return the list of bills related to this project"""
         return self.order_bills(self.get_bills_unordered())
 
     @staticmethod
-    def order_bills(query):
+    def order_bills(selectable):
         return (
-            query.order_by(Bill.date.desc())
+            selectable.order_by(Bill.date.desc())
             .order_by(Bill.creation_date.desc())
             .order_by(Bill.id.desc())
         )
@@ -363,8 +358,8 @@ class Project(db.Model):
                     "amount": round(bill.amount, 2),
                     "currency": bill.original_currency,
                     "date": str(bill.date),
-                    "payer_name": Person.query.get(bill.payer_id).name,
-                    "payer_weight": Person.query.get(bill.payer_id).weight,
+                    "payer_name": db.session.get(Person, bill.payer_id).name,
+                    "payer_weight": db.session.get(Person, bill.payer_id).weight,
                     "owers": owers,
                 }
             )
@@ -591,14 +586,14 @@ class Person(db.Model):
     class PersonQuery(BaseQuery):
         def get_by_name(self, name, project):
             return (
-                Person.query.filter(Person.name == name)
+                self.filter(Person.name == name)
                 .filter(Person.project_id == project.id)
                 .one_or_none()
             )
 
         def get_by_names(self, names, project):
             return (
-                Person.query.filter(Person.name.in_(names))
+                self.filter(Person.name.in_(names))
                 .filter(Person.project_id == project.id)
                 .all()
             )
@@ -607,7 +602,7 @@ class Person(db.Model):
             if not project:
                 project = g.project
             return (
-                Person.query.filter(Person.id == id)
+                self.filter(Person.id == id)
                 .filter(Person.project_id == project.id)
                 .one_or_none()
             )
@@ -616,7 +611,7 @@ class Person(db.Model):
             if not project:
                 project = g.project
             return (
-                Person.query.filter(Person.id.in_(ids))
+                self.filter(Person.id.in_(ids))
                 .filter(Person.project_id == project.id)
                 .all()
             )
@@ -675,9 +670,8 @@ class Bill(db.Model):
         def get(self, project, id):
             try:
                 return (
-                    self.join(Person, Project)
-                    .filter(Bill.payer_id == Person.id)
-                    .filter(Person.project_id == Project.id)
+                    self.join(Person, Bill.payer_id == Person.id)
+                    .join(Project, Person.project_id == Project.id)
                     .filter(Project.id == project.id)
                     .filter(Bill.id == id)
                     .one()
