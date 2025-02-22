@@ -27,9 +27,9 @@ project_helper = sa.Table(
 
 def upgrade():
     connection = op.get_bind()
-    for project in connection.execute(project_helper.select()):
+    for project in connection.execute(sa.select(project_helper)):
         connection.execute(
-            project_helper.update()
+            sa.update(project_helper)
             .where(project_helper.c.name == project.name)
             .values(password=generate_password_hash(project.password))
         )

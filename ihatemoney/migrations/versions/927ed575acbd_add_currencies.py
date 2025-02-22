@@ -53,13 +53,14 @@ def upgrade():
         ),
     )
     # ### end Alembic commands ###
-    op.execute(
+    with op.get_context().autocommit_block():
+        op.execute(sa.text(
+            """
+        UPDATE bill
+        SET converted_amount = amount
+        WHERE converted_amount IS NULL
         """
-    UPDATE bill
-    SET converted_amount = amount
-    WHERE converted_amount IS NULL
-    """
-    )
+        ))
 
 
 def downgrade():
