@@ -29,7 +29,7 @@ person_helper = sa.Table(
 
 def upgrade():
     op.execute(
-        person_helper.update().where(person_helper.c.weight <= 0).values(weight=1)
+        sa.update(person_helper).where(person_helper.c.weight <= 0).values(weight=1)
     )
 
 

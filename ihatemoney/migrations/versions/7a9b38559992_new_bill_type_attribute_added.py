@@ -16,7 +16,7 @@ from ihatemoney.models import BillType
 
 
 def upgrade():
-    billtype_enum = sa.Enum(BillType)
+    billtype_enum = sa.Enum(BillType, name="bill_type_enum")
     billtype_enum.create(op.get_bind(), checkfirst=True)
 
     op.add_column(
@@ -30,5 +30,5 @@ def downgrade():
     op.drop_column("bill", "bill_type")
     op.drop_column("bill_version", "bill_type")
 
-    billtype_enum = sa.Enum(BillType)
+    billtype_enum = sa.Enum(BillType, name="bill_type_enum")
     billtype_enum.drop(op.get_bind())
