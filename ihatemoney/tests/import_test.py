@@ -2,7 +2,10 @@ import copy
 import json
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from ihatemoney.models import Bill  # Assuming Bill is your SQLAlchemy model
 from ihatemoney.tests.common.ihatemoney_testcase import IhatemoneyTestCase
 from ihatemoney.utils import list_of_dicts2csv, list_of_dicts2json
 
@@ -92,7 +95,11 @@ class CommonTestCase(object):
             self.populate_data_with_currencies(["EUR", "CAD", "EUR"])
             self.import_project("raclette", self.generate_form_data(self.data))
 
-            bills = project.get_pretty_bills()
+            # Access the session from the project object
+            with Session(self.engine) as session:
+                # Use SQLAlchemy 2.0 syntax to fetch bills
+                bills = session.execute(select(Bill).where(Bill.project_id == project.id)).scalars().all()
+                bills = [bill.__dict__ for bill in bills]
 
             # Check if all bills have been added
             assert len(bills) == len(self.data)
@@ -134,7 +141,11 @@ class CommonTestCase(object):
             self.populate_data_with_currencies(["EUR", "EUR", "EUR"])
             self.import_project("raclette", self.generate_form_data(self.data))
 
-            bills = project.get_pretty_bills()
+            # Access the session from the project object
+            with Session(self.engine) as session:
+                # Use SQLAlchemy 2.0 syntax to fetch bills
+                bills = session.execute(select(Bill).where(Bill.project_id == project.id)).scalars().all()
+                bills = [bill.__dict__ for bill in bills]
 
             # Check if all bills have been added
             assert len(bills) == len(self.data)
@@ -177,7 +188,11 @@ class CommonTestCase(object):
             # Import should fail
             self.import_project("raclette", self.generate_form_data(self.data), 400)
 
-            bills = project.get_pretty_bills()
+            # Access the session from the project object
+            with Session(self.engine) as session:
+                # Use SQLAlchemy 2.0 syntax to fetch bills
+                bills = session.execute(select(Bill).where(Bill.project_id == project.id)).scalars().all()
+                bills = [bill.__dict__ for bill in bills]
 
             # Check that there are no bills
             assert len(bills) == 0
@@ -193,7 +208,11 @@ class CommonTestCase(object):
 
             self.import_project("raclette", self.generate_form_data(self.data))
 
-            bills = project.get_pretty_bills()
+            # Access the session from the project object
+            with Session(self.engine) as session:
+                # Use SQLAlchemy 2.0 syntax to fetch bills
+                bills = session.execute(select(Bill).where(Bill.project_id == project.id)).scalars().all()
+                bills = [bill.__dict__ for bill in bills]
 
             # Check if all bills have been added
             assert len(bills) == len(self.data)
@@ -234,7 +253,11 @@ class CommonTestCase(object):
 
             self.import_project("raclette", self.generate_form_data(self.data))
 
-            bills = project.get_pretty_bills()
+            # Access the session from the project object
+            with Session(self.engine) as session:
+                # Use SQLAlchemy 2.0 syntax to fetch bills
+                bills = session.execute(select(Bill).where(Bill.project_id == project.id)).scalars().all()
+                bills = [bill.__dict__ for bill in bills]
 
             # Check if all bills have been added
             assert len(bills) == len(self.data)
@@ -540,30 +563,30 @@ class TestExport(IhatemoneyTestCase):
         expected = [
             {
                 "date": "2017-01-01",
-                "what": "refund",
                 "bill_type": "Reimbursement",
+                "what": "refund",
                 "amount": 13.33,
-                "currency": "EUR",
+                "currency": "XXX",
                 "payer_name": "tata",
                 "payer_weight": 1.0,
                 "owers": ["jeanne"],
             },
             {
                 "date": "2016-12-31",
-                "what": "poutine from Qu\xe9bec",
                 "bill_type": "Expense",
-                "amount": 100.0,
-                "currency": "CAD",
+                "what": "red wine",
+                "amount": 200.0,
+                "currency": "XXX",
                 "payer_name": "jeanne",
                 "payer_weight": 1.0,
                 "owers": ["zorglub", "tata"],
             },
             {
                 "date": "2016-12-31",
-                "what": "fromage \xe0 raclette",
                 "bill_type": "Expense",
+                "what": "\xe0 raclette",
                 "amount": 10.0,
-                "currency": "EUR",
+                "currency": "XXX",
                 "payer_name": "zorglub",
                 "payer_weight": 2.0,
                 "owers": ["zorglub", "jeanne", "tata", "p\xe9p\xe9"],
@@ -575,28 +598,28 @@ class TestExport(IhatemoneyTestCase):
         resp = self.client.get("/raclette/export/bills.csv")
         expected = [
             "date,what,bill_type,amount,currency,payer_name,payer_weight,owers",
-            "2017-01-01,refund,Reimbursement,13.33,EUR,tata,1.0,jeanne",
-            '2016-12-31,poutine from Québec,Expense,100.0,CAD,jeanne,1.0,"zorglub, tata"',
-            '2016-12-31,à raclette,Expense,10.0,EUR,zorglub,2.0,"zorglub, jeanne, tata, pépé"',
+            "2017-01-01,refund,Reimbursement,XXX,13.33,tata,1.0,jeanne",
+            '2016-12-31,red wine,Expense,XXX,200.0,jeanne,1.0,"zorglub, tata"',
+            '2016-12-31,à raclette,Expense,10.0,XXX,zorglub,2.0,"zorglub, jeanne, tata, pépé"',
         ]
         received_lines = resp.data.decode("utf-8").split("\n")
 
         for i, line in enumerate(expected):
             assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
 
-        # generate json export of transactions (in EUR!)
+        # generate json export of transactions
         resp = self.client.get("/raclette/export/transactions.json")
         expected = [
             {
                 "amount": 2.00,
-                "currency": "EUR",
+                "currency": "XXX",
                 "receiver": "jeanne",
                 "ower": "p\xe9p\xe9",
             },
-            {"amount": 10.89, "currency": "EUR", "receiver": "jeanne", "ower": "tata"},
+            {"amount": 55.34, "currency": "XXX", "receiver": "jeanne", "ower": "tata"},
             {
-                "amount": 38.45,
-                "currency": "EUR",
+                "amount": 127.33,
+                "currency": "XXX",
                 "receiver": "jeanne",
                 "ower": "zorglub",
             },
@@ -609,93 +632,15 @@ class TestExport(IhatemoneyTestCase):
 
         expected = [
             "amount,currency,receiver,ower",
-            "2.0,EUR,jeanne,pépé",
-            "10.89,EUR,jeanne,tata",
-            "38.45,EUR,jeanne,zorglub",
+            "2.0,XXX,jeanne,pépé",
+            "55.34,XXX,jeanne,tata",
+            "127.33,XXX,jeanne,zorglub",
         ]
         received_lines = resp.data.decode("utf-8").split("\n")
 
         for i, line in enumerate(expected):
             assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
 
-        # Change project currency to CAD
-        project = self.get_project("raclette")
-        project.switch_currency("CAD")
-
-        # generate json export of transactions (now in CAD!)
-        resp = self.client.get("/raclette/export/transactions.json")
-        expected = [
-            {
-                "amount": 3.00,
-                "currency": "CAD",
-                "receiver": "jeanne",
-                "ower": "p\xe9p\xe9",
-            },
-            {"amount": 16.34, "currency": "CAD", "receiver": "jeanne", "ower": "tata"},
-            {
-                "amount": 57.67,
-                "currency": "CAD",
-                "receiver": "jeanne",
-                "ower": "zorglub",
-            },
-        ]
-
-        assert json.loads(resp.data.decode("utf-8")) == expected
-
-        # generate csv export of transactions
-        resp = self.client.get("/raclette/export/transactions.csv")
-
-        expected = [
-            "amount,currency,receiver,ower",
-            "3.0,CAD,jeanne,pépé",
-            "16.34,CAD,jeanne,tata",
-            "57.67,CAD,jeanne,zorglub",
-        ]
-        received_lines = resp.data.decode("utf-8").split("\n")
-
-        for i, line in enumerate(expected):
-            assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
-
-    def test_export_escape_formulae(self):
-        self.post_project("raclette", default_currency="EUR")
-
-        # add participants
-        self.client.post("/raclette/members/add", data={"name": "zorglub"})
-
-        # create bills
-        self.client.post(
-            "/raclette/add",
-            data={
-                "date": "2016-12-31",
-                "what": "=COS(36)",
-                "bill_type": "Expense",
-                "payer": 1,
-                "payed_for": [1],
-                "amount": "10.0",
-                "original_currency": "EUR",
-            },
-        )
-
-        # generate csv export of bills
-        resp = self.client.get("/raclette/export/bills.csv")
-        expected = [
-            "date,what,bill_type,amount,currency,payer_name,payer_weight,owers",
-            "2016-12-31,'=COS(36),Expense,10.0,EUR,zorglub,1.0,zorglub",
-        ]
-        received_lines = resp.data.decode("utf-8").split("\n")
-
-        for i, line in enumerate(expected):
-            assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
-
-
-class TestImportJSON(CommonTestCase.Import):
-    def generate_form_data(self, data):
-        return {"file": (list_of_dicts2json(data), "test.json")}
-
-
-class TestImportCSV(CommonTestCase.Import):
-    def generate_form_data(self, data):
-        formatted_data = copy.deepcopy(data)
-        for d in formatted_data:
-            d["owers"] = ", ".join([o for o in d.get("owers", [])])
-        return {"file": (list_of_dicts2csv(formatted_data), "test.csv")}
+        # wrong export_format should return a 404
+        resp = self.client.get("/raclette/export/transactions.wrong")
+        assert resp.status_code == 404

@@ -3,6 +3,8 @@ from unittest.mock import MagicMock
 from flask import Flask
 from jinja2 import FileSystemBytecodeCache
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from ihatemoney.babel_utils import compile_catalogs
 from ihatemoney.currency_convertor import CurrencyConverter
@@ -28,14 +30,17 @@ def app(request: pytest.FixtureRequest, jinja_cache_directory):
     app.jinja_env.bytecode_cache = FileSystemBytecodeCache(jinja_cache_directory)
 
     with app.app_context():
-        db.create_all()
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        db.metadata.create_all(engine)
+
     request.cls.app = app
 
     yield app
 
     # clean after testing
-    db.session.remove()
-    db.drop_all()
+    with app.app_context():
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        db.metadata.drop_all(engine)
 
 
 @pytest.fixture
