@@ -53,13 +53,13 @@ def upgrade():
         ),
     )
     # ### end Alembic commands ###
-    op.execute(
+    op.execute(sa.text(
         """
     UPDATE bill
     SET converted_amount = amount
     WHERE converted_amount IS NULL
     """
-    )
+    ))
 
 
 def downgrade():

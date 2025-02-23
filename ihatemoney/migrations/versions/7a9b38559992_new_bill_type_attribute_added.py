@@ -21,7 +21,12 @@ def upgrade():
 
     op.add_column(
         "bill",
-        sa.Column("bill_type", billtype_enum, server_default=BillType.EXPENSE.name),
+        sa.Column(
+            "bill_type",
+            billtype_enum,
+            server_default=BillType.EXPENSE.name,
+            nullable=False,
+        ),
     )
     op.add_column("bill_version", sa.Column("bill_type", sa.UnicodeText()))
 

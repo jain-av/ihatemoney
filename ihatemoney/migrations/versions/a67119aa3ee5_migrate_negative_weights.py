@@ -12,18 +12,20 @@ down_revision = "afbf27e6ef20"
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import Column, Integer, String, UnicodeText, Boolean, Float, ForeignKeyConstraint, PrimaryKeyConstraint, MetaData, Table
+
 
 # Snapshot of the person table
-person_helper = sa.Table(
+person_helper = Table(
     "person",
-    sa.MetaData(),
-    sa.Column("id", sa.Integer(), nullable=False),
-    sa.Column("project_id", sa.String(length=64), nullable=True),
-    sa.Column("name", sa.UnicodeText(), nullable=True),
-    sa.Column("activated", sa.Boolean(), nullable=True),
-    sa.Column("weight", sa.Float(), nullable=True),
-    sa.ForeignKeyConstraint(["project_id"], ["project.id"]),
-    sa.PrimaryKeyConstraint("id"),
+    MetaData(),
+    Column("id", Integer(), nullable=False),
+    Column("project_id", String(length=64), nullable=True),
+    Column("name", UnicodeText(), nullable=True),
+    Column("activated", Boolean(), nullable=True),
+    Column("weight", Float(), nullable=True),
+    ForeignKeyConstraint(["project_id"], ["project.id"]),
+    PrimaryKeyConstraint("id"),
 )
 
 

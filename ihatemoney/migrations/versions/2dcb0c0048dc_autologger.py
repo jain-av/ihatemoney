@@ -36,19 +36,19 @@ def upgrade():
         sa.PrimaryKeyConstraint("id", "transaction_id"),
     )
     op.create_index(
-        op.f("ix_bill_version_end_transaction_id"),
+        "ix_bill_version_end_transaction_id",
         "bill_version",
         ["end_transaction_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_bill_version_operation_type"),
+        "ix_bill_version_operation_type",
         "bill_version",
         ["operation_type"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_bill_version_transaction_id"),
+        "ix_bill_version_transaction_id",
         "bill_version",
         ["transaction_id"],
         unique=False,
@@ -65,19 +65,19 @@ def upgrade():
         sa.PrimaryKeyConstraint("bill_id", "person_id", "transaction_id"),
     )
     op.create_index(
-        op.f("ix_billowers_version_end_transaction_id"),
+        "ix_billowers_version_end_transaction_id",
         "billowers_version",
         ["end_transaction_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_billowers_version_operation_type"),
+        "ix_billowers_version_operation_type",
         "billowers_version",
         ["operation_type"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_billowers_version_transaction_id"),
+        "ix_billowers_version_transaction_id",
         "billowers_version",
         ["transaction_id"],
         unique=False,
@@ -99,19 +99,19 @@ def upgrade():
         sa.PrimaryKeyConstraint("id", "transaction_id"),
     )
     op.create_index(
-        op.f("ix_person_version_end_transaction_id"),
+        "ix_person_version_end_transaction_id",
         "person_version",
         ["end_transaction_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_person_version_operation_type"),
+        "ix_person_version_operation_type",
         "person_version",
         ["operation_type"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_person_version_transaction_id"),
+        "ix_person_version_transaction_id",
         "person_version",
         ["transaction_id"],
         unique=False,
@@ -141,19 +141,19 @@ def upgrade():
         sa.PrimaryKeyConstraint("id", "transaction_id"),
     )
     op.create_index(
-        op.f("ix_project_version_end_transaction_id"),
+        "ix_project_version_end_transaction_id",
         "project_version",
         ["end_transaction_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_project_version_operation_type"),
+        "ix_project_version_operation_type",
         "project_version",
         ["operation_type"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_project_version_transaction_id"),
+        "ix_project_version_transaction_id",
         "project_version",
         ["transaction_id"],
         unique=False,
@@ -200,33 +200,33 @@ def downgrade():
         op.drop_column("project", "logging_preference")
     op.drop_table("transaction")
     op.drop_index(
-        op.f("ix_project_version_transaction_id"), table_name="project_version"
+        "ix_project_version_transaction_id", table_name="project_version"
     )
     op.drop_index(
-        op.f("ix_project_version_operation_type"), table_name="project_version"
+        "ix_project_version_operation_type", table_name="project_version"
     )
     op.drop_index(
-        op.f("ix_project_version_end_transaction_id"), table_name="project_version"
+        "ix_project_version_end_transaction_id", table_name="project_version"
     )
     op.drop_table("project_version")
-    op.drop_index(op.f("ix_person_version_transaction_id"), table_name="person_version")
-    op.drop_index(op.f("ix_person_version_operation_type"), table_name="person_version")
+    op.drop_index("ix_person_version_transaction_id", table_name="person_version")
+    op.drop_index("ix_person_version_operation_type", table_name="person_version")
     op.drop_index(
-        op.f("ix_person_version_end_transaction_id"), table_name="person_version"
+        "ix_person_version_end_transaction_id", table_name="person_version"
     )
     op.drop_table("person_version")
     op.drop_index(
-        op.f("ix_billowers_version_transaction_id"), table_name="billowers_version"
+        "ix_billowers_version_transaction_id", table_name="billowers_version"
     )
     op.drop_index(
-        op.f("ix_billowers_version_operation_type"), table_name="billowers_version"
+        "ix_billowers_version_operation_type", table_name="billowers_version"
     )
     op.drop_index(
-        op.f("ix_billowers_version_end_transaction_id"), table_name="billowers_version"
+        "ix_billowers_version_end_transaction_id", table_name="billowers_version"
     )
     op.drop_table("billowers_version")
-    op.drop_index(op.f("ix_bill_version_transaction_id"), table_name="bill_version")
-    op.drop_index(op.f("ix_bill_version_operation_type"), table_name="bill_version")
-    op.drop_index(op.f("ix_bill_version_end_transaction_id"), table_name="bill_version")
+    op.drop_index("ix_bill_version_transaction_id", table_name="bill_version")
+    op.drop_index("ix_bill_version_operation_type", table_name="bill_version")
+    op.drop_index("ix_bill_version_end_transaction_id", table_name="bill_version")
     op.drop_table("bill_version")
     # ### end Alembic commands ###
