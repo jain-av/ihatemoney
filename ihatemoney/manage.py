@@ -86,7 +86,7 @@ def generate_config(config_file):
 @click.argument("project_name")
 def delete_project(project_name):
     """Delete a project"""
-    project = Project.query.get(project_name)
+    project = db.session.get(Project, project_name)
     if project is None:
         click.secho(f'Project "{project_name}" not found', fg="red")
     else:
@@ -102,9 +102,9 @@ def get_project_count(print_emails, bills, days):
     """Count projets with at least x bills and at less than x days old"""
     projects = [
         pr
-        for pr in Project.query.all()
-        if pr.get_bills().count() > bills
-        and pr.get_bills()[0].date
+        for pr in db.session.execute(db.select(Project)).scalars()
+        if len(pr.get_bills().all()) > bills
+        and pr.get_bills().first().date
         > datetime.date.today() - datetime.timedelta(days=days)
     ]
     click.secho("Number of projects: " + str(len(projects)))

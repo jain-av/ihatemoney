@@ -318,7 +318,6 @@ def same_bill(bill1, bill2):
             return False
     return True
 
-
 class FormEnum(Enum):
     """Extend builtin Enum class to be seamlessly compatible with WTForms"""
 

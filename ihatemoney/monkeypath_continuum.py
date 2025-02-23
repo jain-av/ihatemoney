@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 import six
 import sqlalchemy as sa
+from sqlalchemy.orm import relationship
 from sqlalchemy_continuum import __version__ as continuum_version
 from sqlalchemy_continuum.exc import ImproperlyConfigured
 from sqlalchemy_continuum.transaction import (
@@ -71,7 +72,7 @@ class PatchedTransactionFactory(TransactionFactory):
                     index=True,
                 )
 
-                user = sa.orm.relationship(user_cls)
+                user = relationship(user_cls)
 
             def __repr__(self):
                 fields = ["id", "issued_at", "user"]

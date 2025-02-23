@@ -13,6 +13,7 @@ from jinja2 import pass_context
 from markupsafe import Markup
 import pytz
 from werkzeug.middleware.proxy_fix import ProxyFix
+from sqlalchemy import create_engine
 
 from ihatemoney import default_settings
 from ihatemoney.api.v1 import api as apiv1
@@ -36,9 +37,10 @@ def setup_database(app):
 
     def _pre_alembic_db():
         """Checks if we are migrating from a pre-alembic ihatemoney"""
-        con = db.engine.connect()
-        tables_exist = db.engine.dialect.has_table(con, "project")
-        alembic_setup = db.engine.dialect.has_table(con, "alembic_version")
+        engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
+        with engine.connect() as con:
+            tables_exist = engine.dialect.has_table(con, "project")
+            alembic_setup = engine.dialect.has_table(con, "alembic_version")
         return tables_exist and not alembic_setup
 
     sqlalchemy_url = app.config.get("SQLALCHEMY_DATABASE_URI")

@@ -67,7 +67,7 @@ db = SQLAlchemy()
 class Project(db.Model):
     class ProjectQuery(BaseQuery):
         def get_by_name(self, name):
-            return Project.query.filter(Project.name == name).one()
+            return db.session.execute(db.select(Project).filter_by(name=name)).scalar_one()
 
     # Direct SQLAlchemy-Continuum to track changes to this model
     __versioned__ = {}
@@ -134,7 +134,7 @@ class Project(db.Model):
         balances, spent, paid, transferred, received = (
             defaultdict(float) for _ in range(5)
         )
-        for bill in self.get_bills_unordered().all():
+        for bill in db.session.execute(self.get_bills_unordered()).scalars():
             total_weight = sum(ower.weight for ower in bill.owers)
 
             if bill.bill_type == BillType.EXPENSE:
@@ -198,7 +198,7 @@ class Project(db.Model):
         :rtype dict:
         """
         monthly = defaultdict(lambda: defaultdict(float))
-        for bill in self.get_bills_unordered().all():
+        for bill in db.session.execute(self.get_bills_unordered()).scalars():
             if bill.bill_type == BillType.EXPENSE:
                 monthly[bill.date.year][bill.date.month] += bill.converted_amount
         return monthly
@@ -243,7 +243,7 @@ class Project(db.Model):
 
     def has_bills(self):
         """return if the project do have bills or not"""
-        return self.get_bills_unordered().count() > 0
+        return db.session.execute(self.get_bills_unordered()).scalar() is not None
 
     def has_multiple_currencies(self):
         """Returns True if multiple currencies are used"""
@@ -251,7 +251,7 @@ class Project(db.Model):
         # but this is called very rarely so we can tolerate if it's a bit
         # slow. And doing this in Python is much more readable, see #784.
         nb_currencies = len(
-            set(bill.original_currency for bill in self.get_bills_unordered())
+            set(bill.original_currency for bill in db.session.execute(self.get_bills_unordered()).scalars())
         )
         return nb_currencies > 1
 
@@ -262,7 +262,7 @@ class Project(db.Model):
         # Without this option, any access to bill.owers would trigger a
         # new SQL query, ruining overall performance.
         return (
-            Bill.query.options(orm.subqueryload(Bill.owers))
+            db.select(Bill).options(orm.subqueryload(Bill.owers))
             .join(Person, Project)
             .filter(Bill.payer_id == Person.id)
             .filter(Person.project_id == Project.id)
@@ -591,14 +591,14 @@ class Person(db.Model):
     class PersonQuery(BaseQuery):
         def get_by_name(self, name, project):
             return (
-                Person.query.filter(Person.name == name)
+                self.filter(Person.name == name)
                 .filter(Person.project_id == project.id)
                 .one_or_none()
             )
 
         def get_by_names(self, names, project):
             return (
-                Person.query.filter(Person.name.in_(names))
+                self.filter(Person.name.in_(names))
                 .filter(Person.project_id == project.id)
                 .all()
             )
@@ -607,7 +607,7 @@ class Person(db.Model):
             if not project:
                 project = g.project
             return (
-                Person.query.filter(Person.id == id)
+                self.filter(Person.id == id)
                 .filter(Person.project_id == project.id)
                 .one_or_none()
             )
@@ -616,7 +616,7 @@ class Person(db.Model):
             if not project:
                 project = g.project
             return (
-                Person.query.filter(Person.id.in_(ids))
+                self.filter(Person.id.in_(ids))
                 .filter(Person.project_id == project.id)
                 .all()
             )
@@ -805,8 +805,6 @@ class Archive(db.Model):
     def __repr__(self):
         return "<Archive>"
 
-
-sqlalchemy.orm.configure_mappers()
 
 PersonVersion = version_class(Person)
 ProjectVersion = version_class(Project)
