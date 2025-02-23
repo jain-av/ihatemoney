@@ -22,13 +22,9 @@ from wtforms.fields import (
     SelectMultipleField,
     StringField,
     SubmitField,
+    URLField,
 )
 
-try:
-    # Compat for WTForms <= 2.3.3
-    from wtforms.fields.html5 import URLField
-except ModuleNotFoundError:
-    from wtforms.fields import URLField
 
 from wtforms.validators import (
     URL,
@@ -122,6 +118,291 @@ class CalculatorStringField(StringField):
             valuelist[0] = str(eval_arithmetic_expression(value))
 
         return super(CalculatorStringField, self).process_formdata(valuelist)
+
+
+class EditProjectForm(FlaskForm):
+    name = StringField(_("Project name"), validators=[DataRequired()])
+    current_password = PasswordField(
+        _("Current private code"),
+        description=_("Enter existing private code to edit project"),
+        validators=[DataRequired()],
+    )
+    # If empty -> don't change the password
+    password = PasswordField(
+        _("New private code"),
+        description=_("Enter a new code if you want to change it"),
+    )
+    contact_email = StringField(_("Email"), validators=[DataRequired(), Email()])
+    project_history = BooleanField(_("Enable project history"))
+    ip_recording = BooleanField(_("Use IP tracking for project history"))
+    currency_helper = CurrencyConverter()
+    default_currency = SelectField(
+        _("Default Currency"),
+        validators=[DataRequired()],
+        default=CurrencyConverter.no_currency,
+        description=_(
+            "Setting a default currency enables currency conversion between bills"
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        if not hasattr(self, "id"):
+            # We must access the project to validate the default currency, using its id.
+            # In ProjectForm, 'id' is provided, but not in this base class, so it *must*
+            # be provided by callers.
+            # Since id can be defined as a WTForms.StringField, we mimics it,
+            # using an object that can have a 'data' attribute.
+            # It defaults to empty string to ensure that query run smoothly.
+            self.id = SimpleNamespace(data=kwargs.pop("id", ""))
+        super().__init__(*args, **kwargs)
+        self.default_currency.choices = [
+            (currency_name, render_localized_currency(currency_name, detailed=True))
+            for currency_name in self.currency_helper.get_currencies()
+        ]
+
+    def validate_current_password(self, field):
+        project = Project.query.get(self.id.data)
+        if project is None:
+            raise ValidationError(_("Unknown error"))
+        if not check_password_hash(project.password, self.current_password.data):
+            raise ValidationError(_("Invalid private code."))
+
+    @property
+    def logging_preference(self):
+        """Get the LoggingMode object corresponding to current form data."""
+        if not self.project_history.data:
+            return LoggingMode.DISABLED
+        else:
+            if self.ip_recording.data:
+                return LoggingMode.RECORD_IP
+            else:
+                return LoggingMode.ENABLED
+
+    def validate_default_currency(self, field):
+        project = Project.query.get(self.id.data)
+        if (
+            project is not None
+            and field.data == CurrencyConverter.no_currency
+            and project.has_multiple_currencies()
+        ):
+            msg = _(
+                "This project cannot be set to 'no currency'"
+                " because it contains bills in multiple currencies."
+            )
+            raise ValidationError(msg)
+        if (
+            project is not None
+            and field.data != project.default_currency
+            and project.has_bills()
+        ):
+            msg = _(
+                "Cannot change project currency because currency conversion is broken"
+            )
+            raise ValidationError(msg)
+
+    def update(self, project):
+        """Update the project with the information from the form"""
+        project.name = self.name.data
+
+        if (
+            # Only update password if a new one is provided
+            self.password.data
+            # Only update password if different from the previous one,
+            # to prevent spurious log entries
+            and not check_password_hash(project.password, self.password.data)
+        ):
+            project.password = generate_password_hash(self.password.data)
+
+        project.contact_email = self.contact_email.data
+        project.logging_preference = self.logging_preference
+        project.switch_currency(self.default_currency.data)
+
+        return project
+
+
+class ImportProjectForm(FlaskForm):
+    file = FileField(
+        "File",
+        validators=[
+            FileRequired(),
+            FileAllowed(["json", "JSON", "csv", "CSV"], "Incorrect file format"),
+        ],
+        description=_("Compatible with Cospend"),
+    )
+
+
+class ProjectForm(EditProjectForm):
+    id = StringField(_("Project identifier"), validators=[DataRequired()])
+    # Remove this field that is inherited from EditProjectForm
+    current_password = None
+    # This field overrides the one from EditProjectForm (to make it mandatory)
+    password = PasswordField(_("Private code"), validators=[DataRequired()])
+    submit = SubmitField(_("Create the project"))
+
+    def save(self):
+        """Create a new project with the information given by this form.
+
+        Returns the created instance
+        """
+        # WTForms Boolean Fields don't insert the default value when the
+        # request doesn't include any value the way that other fields do,
+        # so we'll manually do it here
+        self.project_history.data = LoggingMode.default() != LoggingMode.DISABLED
+        self.ip_recording.data = LoggingMode.default() == LoggingMode.RECORD_IP
+        # Create project
+        project = Project(
+            name=self.name.data,
+            id=self.id.data,
+            password=generate_password_hash(self.password.data),
+            contact_email=self.contact_email.data,
+            logging_preference=self.logging_preference,
+            default_currency=self.default_currency.data,
+        )
+        return project
+
+    def validate_id(self, field):
+        self.id.data = slugify(field.data)
+        if (self.id.data == "dashboard") or Project.query.get(self.id.data):
+            message = _(
+                'A project with this identifier ("%(project)s") already exists. '
+                "Please choose a new identifier",
+                project=self.id.data,
+            )
+            raise ValidationError(Markup(message))
+
+
+class ProjectFormWithCaptcha(ProjectForm):
+    captcha = StringField(
+        _("Which is a real currency: Euro or Petro dollar?"), default=""
+    )
+
+    def validate_captcha(self, field):
+        if not field.data.lower() == _("euro").lower():
+            message = _("Please, validate the captcha to proceed.")
+            raise ValidationError(Markup(message))
+
+
+class DestructiveActionProjectForm(FlaskForm):
+    """Used for any important "delete" action linked to a project:
+
+from datetime import datetime
+import decimal
+from re import match
+from types import SimpleNamespace
+
+import email_validator
+from flask import request
+from flask_babel import lazy_gettext as _
+from flask_wtf.file import FileAllowed, FileField, FileRequired
+from flask_wtf import FlaskForm
+from markupsafe import Markup
+from werkzeug.security import check_password_hash
+from wtforms import (
+    BooleanField,
+    DateField,
+    DecimalField,
+    HiddenField,
+    IntegerField,
+    Label,
+    PasswordField,
+    SelectField,
+    SelectMultipleField,
+    StringField,
+    SubmitField,
+    URLField,
+)
+from wtforms import (
+    URL,
+    DataRequired,
+    Email,
+    EqualTo,
+    NumberRange,
+    Optional,
+    ValidationError,
+)
+
+from ihatemoney.currency_convertor import CurrencyConverter
+from ihatemoney.models import Bill, BillType, LoggingMode, Person, Project
+from ihatemoney.utils import (
+    em_surround,
+    eval_arithmetic_expression,
+    generate_password_hash,
+    render_localized_currency,
+    slugify,
+)
+
+
+def strip_filter(string):
+    try:
+        return string.strip()
+    except Exception:
+        return string
+
+
+def get_billform_for(project, set_default=True, **kwargs):
+    """Return an instance of BillForm configured for a particular project.
+
+    :set_default: if set to True, it will call set_default on GET methods (usually
+                  when we want to display the default form).
+
+    """
+    form = BillForm(**kwargs)
+    if form.original_currency.data is None:
+        form.original_currency.data = project.default_currency
+
+    # Used in validate_original_currency
+    form.project_currency = project.default_currency
+
+    show_no_currency = form.original_currency.data == CurrencyConverter.no_currency
+
+    form.original_currency.choices = [
+        (currency_name, render_localized_currency(currency_name, detailed=False))
+        for currency_name in form.currency_helper.get_currencies(
+            with_no_currency=show_no_currency
+        )
+    ]
+
+    active_members = [(m.id, m.name) for m in project.active_members]
+
+    form.payed_for.choices = form.payer.choices = active_members
+    form.payed_for.default = [m.id for m in project.active_members]
+
+    if set_default and request.method == "GET":
+        form.set_default()
+    return form
+
+
+class CommaDecimalField(DecimalField):
+    """A class to deal with comma in Decimal Field"""
+
+    def process_formdata(self, value):
+        if value:
+            value[0] = str(value[0]).replace(",", ".")
+        return super().process_formdata(value)
+
+
+class CalculatorStringField(StringField):
+    """
+    A class to deal with math ops (+, -, *, /)
+    in StringField
+    """
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            message = _(
+                "Not a valid amount or expression. "
+                "Only numbers and + - * / operators "
+                "are accepted."
+            )
+            value = str(valuelist[0]).replace(",", ".")
+
+            # avoid exponents to prevent expensive calculations i.e 2**9999999999**9999999
+            if not match(r"^[ 0-9\.\+\-\*/\(\)]{0,200}$", value) or "**" in value:
+                raise ValueError(Markup(message))
+
+            valuelist[0] = str(eval_arithmetic_expression(value))
+
+        return super().process_formdata(valuelist)
 
 
 class EditProjectForm(FlaskForm):
@@ -463,7 +744,7 @@ class MemberForm(FlaskForm):
     submit = SubmitField(_("Add"))
 
     def __init__(self, project, edit=False, *args, **kwargs):
-        super(MemberForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.project = project
         self.edit = edit
 

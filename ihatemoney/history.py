@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy_continuum import Operation, parent_class
 
 from ihatemoney.models import BillVersion, Person, PersonVersion, ProjectVersion
@@ -5,17 +6,17 @@ from ihatemoney.models import BillVersion, Person, PersonVersion, ProjectVersion
 
 def get_history_queries(project):
     """Generate queries for each type of version object for a given project."""
-    person_changes = PersonVersion.query.filter_by(project_id=project.id)
+    person_changes = select(PersonVersion).filter_by(project_id=project.id)
 
-    project_changes = ProjectVersion.query.filter_by(id=project.id)
+    project_changes = select(ProjectVersion).filter_by(id=project.id)
 
     bill_changes = (
-        BillVersion.query.with_entities(BillVersion.id.label("bill_version_id"))
+        select(BillVersion.id.label("bill_version_id"))
         .join(Person, BillVersion.payer_id == Person.id)
         .filter(Person.project_id == project.id)
     )
     sub_query = bill_changes.subquery()
-    bill_changes = BillVersion.query.filter(BillVersion.id.in_(sub_query))
+    bill_changes = select(BillVersion).filter(BillVersion.id.in_(sub_query))
 
     return person_changes, project_changes, bill_changes
 
@@ -69,7 +70,11 @@ def get_history(project, human_readable_names=True):
     """
     person_query, project_query, bill_query = get_history_queries(project)
     history = []
-    for version_list in [person_query.all(), project_query.all(), bill_query.all()]:
+    for version_list in [
+        project.session.execute(person_query).scalars().all(),
+        project.session.execute(project_query).scalars().all(),
+        project.session.execute(bill_query).scalars().all(),
+    ]:
         for version in version_list:
             object_type = parent_class(type(version)).__name__
 
@@ -162,4 +167,5 @@ def purge_history(project):
     You must commit the purge after calling this function.
     """
     for query in get_history_queries(project):
-        query.delete(synchronize_session="fetch")
+        # Assuming you have access to the session through the project object
+        project.session.execute(query).delete(synchronize_session="fetch")
