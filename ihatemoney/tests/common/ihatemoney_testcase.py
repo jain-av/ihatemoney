@@ -73,7 +73,7 @@ class BaseTestCase:
         models.db.session.commit()
 
     def get_project(self, id) -> models.Project:
-        return models.Project.query.get(id)
+        return models.db.session.get(models.Project, id)
 
 
 class IhatemoneyTestCase(BaseTestCase):
