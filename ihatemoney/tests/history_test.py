@@ -240,8 +240,9 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.status_code == 200
 
         # delete user using POST method
+        person = models.Person.query.one()
         resp = self.client.post(
-            f"/demo/members/{user_id}/delete", follow_redirects=True
+            f"/demo/members/{person.id}/delete", follow_redirects=True
         )
         assert resp.status_code == 200
 

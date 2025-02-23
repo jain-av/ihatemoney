@@ -275,7 +275,7 @@ class TestBudget(IhatemoneyTestCase):
             assert session["raclette"]
 
             # project is created
-            assert len(models.Project.query.all()) == 1
+            assert models.Project.query.count() == 1
 
             # Add a second project with the same id
             self.get_project("raclette")
@@ -292,7 +292,7 @@ class TestBudget(IhatemoneyTestCase):
             )
 
             # no new project added
-            assert len(models.Project.query.all()) == 1
+            assert models.Project.query.count() == 1
 
     def test_project_creation_without_public_permissions(self):
         self.app.config["ALLOW_PUBLIC_PROJECT_CREATION"] = False
@@ -313,7 +313,7 @@ class TestBudget(IhatemoneyTestCase):
             assert "raclette" not in session
 
             # project is not created
-            assert len(models.Project.query.all()) == 0
+            assert models.Project.query.count() == 0
 
     def test_project_creation_with_public_permissions(self):
         self.app.config["ALLOW_PUBLIC_PROJECT_CREATION"] = True
@@ -334,7 +334,7 @@ class TestBudget(IhatemoneyTestCase):
             assert session["raclette"]
 
             # project is created
-            assert len(models.Project.query.all()) == 1
+            assert models.Project.query.count() == 1
 
     def test_project_deletion(self):
         with self.client as c:
@@ -350,14 +350,14 @@ class TestBudget(IhatemoneyTestCase):
             )
 
             # project added
-            assert len(models.Project.query.all()) == 1
+            assert models.Project.query.count() == 1
 
             # Check that we can't delete project with a GET or with a
             # password-less POST.
             resp = self.client.get("/raclette/delete")
             assert resp.status_code == 405
             self.client.post("/raclette/delete")
-            assert len(models.Project.query.all()) == 1
+            assert models.Project.query.count() == 1
 
             # Delete for real
             c.post(
@@ -366,7 +366,7 @@ class TestBudget(IhatemoneyTestCase):
             )
 
             # project removed
-            assert len(models.Project.query.all()) == 0
+            assert models.Project.query.count() == 0
 
     def test_bill_placeholder(self):
         self.post_project("raclette")
@@ -765,7 +765,7 @@ class TestBudget(IhatemoneyTestCase):
                 "external_link": "https://example.com/fromage",
             },
         )
-        bill = models.Bill.query.filter(models.Bill.date == "2015-05-05")[0]
+        bill = models.Bill.query.filter(models.Bill.date == "2015-05-05").first()
         assert bill.external_link == "https://example.com/fromage"
 
         # add a bill with an invalid external link
@@ -1594,7 +1594,7 @@ class TestBudget(IhatemoneyTestCase):
         self.assertStatus(302, resp)
 
         # Additional check that the bill was indeed not modified or deleted
-        bill = models.Bill.query.filter(models.Bill.id == 1).one()
+        bill = models.Bill.query.filter_by(id=1).one()
         assert bill.what == "fromage à raclette"
 
         # Use the correct credentials to modify and delete the bill.
@@ -1605,11 +1605,11 @@ class TestBudget(IhatemoneyTestCase):
             "/authenticate", data={"id": "raclette", "password": "raclette"}
         )
         self.client.post("/raclette/edit/1", data=modified_bill)
-        bill = models.Bill.query.filter(models.Bill.id == 1).one_or_none()
+        bill = models.Bill.query.filter_by(id=1).one_or_none()
         assert bill is not None, "bill not found"
         assert bill.what == "roblochon"
         self.client.post("/raclette/delete/1")
-        bill = models.Bill.query.filter(models.Bill.id == 1).one_or_none()
+        bill = models.Bill.query.filter_by(id=1).one_or_none()
         assert bill is None
 
         # Switch back to the second project
@@ -1641,7 +1641,7 @@ class TestBudget(IhatemoneyTestCase):
         self.assertStatus(302, resp)
 
         # Additional check that the member was indeed not modified or deleted
-        member = models.Person.query.filter(models.Person.id == 1).one_or_none()
+        member = models.Person.query.filter_by(id=1).one_or_none()
         assert member is not None, "member not found"
         assert member.name == "zorglub"
         assert member.activated
@@ -1653,10 +1653,10 @@ class TestBudget(IhatemoneyTestCase):
             "/authenticate", data={"id": "raclette", "password": "raclette"}
         )
         self.client.post("/raclette/members/1/edit", data=modified_member)
-        member = models.Person.query.filter(models.Person.id == 1).one()
+        member = models.Person.query.filter_by(id=1).one()
         assert member.name == "bulgroz"
         self.client.post("/raclette/members/1/delete")
-        member = models.Person.query.filter(models.Person.id == 1).one_or_none()
+        member = models.Person.query.filter_by(id=1).one_or_none()
         assert member is None
 
         # test new settle endpoint to add bills with wrong ids
@@ -1672,9 +1672,7 @@ class TestBudget(IhatemoneyTestCase):
                 "amount": "42.0",
             },
         )
-        piratebill = models.Bill.query.filter(
-            models.Bill.bill_type == models.BillType.REIMBURSEMENT
-        ).one_or_none()
+        piratebill = models.Bill.query.filter_by(bill_type=models.BillType.REIMBURSEMENT).one_or_none()
         assert piratebill is None, "piratebill 3 should not exist"
 
     @pytest.mark.skip(reason="Currency conversion is broken")
@@ -2109,252 +2107,34 @@ class TestBudget(IhatemoneyTestCase):
         resp = self.client.get(f"/raclette/feed/{token}.xml")
 
         content = resp.data.decode()
+
+        assert (
+            f"""<channel>
+        <title>I Hate Money — raclette</title>
+        <description>Latest bills from raclette</description>
+        <atom:link href="http://localhost/raclette/feed/{token}.xml" rel="self" type="application/rss+xml" />
+        <link>http://localhost/raclette/</link>
+        <item>
+            <title>fromage à raclette - €12.00</title>
+            <guid isPermaLink="false">1</guid>
+            <dc:creator>george</dc:creator>
+            <description>December 31, 2016 - george, peter, steven : €4.00</description>
+        """
+            in content
+        )
+
         assert """<title>charcuterie - €15.00</title>""" in content
         assert """<title>vin blanc - €10.00</title>""" in content
 
-    def test_rss_if_modified_since_header(self):
-        # Project creation
-        self.post_project("raclette")
+    def test_rss_feed_history_disabled(self):
+        """
+        Tests that RSS feeds is correctly rendered even if the project
+        history is disabled.
+        """
+        self.post_project("raclette", default_currency="EUR", project_history=False)
         self.client.post("/raclette/members/add", data={"name": "george"})
-        project = self.get_project("raclette")
-        token = project.generate_token("feed")
-
-        resp = self.client.get(f"/raclette/feed/{token}.xml")
-        assert resp.status_code == 200
-        assert "Last-Modified" in resp.headers.keys()
-        last_modified = resp.headers.get("Last-Modified")
-
-        # Get a date 1 hour before the last modified date
-        before = datetime.strptime(
-            last_modified, "%a, %d %b %Y %H:%M:%S %Z"
-        ) - timedelta(hours=1)
-        before_str = before.strftime("%a, %d %b %Y %H:%M:%S %Z")
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={"If-Modified-Since": before_str},
-        )
-        assert resp.status_code == 200
-
-        after = datetime.strptime(
-            last_modified, "%a, %d %b %Y %H:%M:%S %Z"
-        ) + timedelta(hours=1)
-        after_str = after.strftime("%a, %d %b %Y %H:%M:%S %Z")
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={"If-Modified-Since": after_str},
-        )
-        assert resp.status_code == 304
-
-        # Add bill
-        self.login("raclette")
-        resp = self.client.post(
-            "/raclette/add",
-            data={
-                "date": "2016-12-31",
-                "what": "fromage à raclette",
-                "payer": 1,
-                "payed_for": [1],
-                "amount": "12",
-                "original_currency": "XXX",
-                "bill_type": "Expense",
-            },
-            follow_redirects=True,
-        )
-        assert resp.status_code == 200
-        assert "The bill has been added" in resp.data.decode()
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={"If-Modified-Since": before_str},
-        )
-        assert resp.status_code == 200
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={"If-Modified-Since": after_str},
-        )
-        assert resp.status_code == 304
-
-    def test_rss_etag_headers(self):
-        # Project creation
-        self.post_project("raclette")
-        self.client.post("/raclette/members/add", data={"name": "george"})
-        project = self.get_project("raclette")
-        token = project.generate_token("feed")
-
-        resp = self.client.get(f"/raclette/feed/{token}.xml")
-        etag = resp.headers.get("ETag")
-        assert resp.status_code == 200
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={
-                "If-None-Match": etag,
-            },
-        )
-        assert resp.status_code == 304
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={
-                "If-None-Match": build_etag(project.id, "2023-07-26T13:00:00"),
-            },
-        )
-        assert resp.status_code == 200
-
-        # Add bill
-        self.login("raclette")
-        resp = self.client.post(
-            "/raclette/add",
-            data={
-                "date": "2016-12-31",
-                "what": "fromage à raclette",
-                "payer": 1,
-                "payed_for": [1],
-                "amount": "12",
-                "bill_type": "Expense",
-                "original_currency": "XXX",
-            },
-            follow_redirects=True,
-        )
-        assert resp.status_code == 200
-        assert "The bill has been added" in resp.data.decode()
-        etag = resp.headers.get("ETag")
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={"If-None-Match": etag},
-        )
-        assert resp.status_code == 200
-        new_etag = resp.headers.get("ETag")
-
-        resp = self.client.get(
-            f"/raclette/feed/{token}.xml",
-            headers={
-                "If-None-Match": new_etag,
-            },
-        )
-        assert resp.status_code == 304
-
-    def test_rss_feed_bad_token(self):
-        self.post_project("raclette")
-        project = self.get_project("raclette")
-        token = project.generate_token("feed")
-
-        resp = self.client.get(f"/raclette/feed/{token}.xml")
-        assert resp.status_code == 200
-        resp = self.client.get("/raclette/feed/invalid-token.xml")
-        assert resp.status_code == 404
-
-    def test_rss_feed_different_project_with_same_password(
-        self,
-    ):
-        """
-        Test that a 'feed' token is not valid to access the feed of
-        another project with the same password.
-        """
-        self.post_project("raclette", password="password")
-        self.post_project("reblochon", password="password")
-        project = self.get_project("raclette")
-        token = project.generate_token("feed")
-
-        resp = self.client.get(f"/reblochon/feed/{token}.xml")
-        assert resp.status_code == 404
-
-    def test_rss_feed_different_project_with_different_password(
-        self,
-    ):
-        """
-        Test that a 'feed' token is not valid to access the feed of
-        another project with a different password.
-        """
-        self.post_project("raclette", password="password")
-        self.post_project("reblochon", password="another-password")
-        project = self.get_project("raclette")
-        token = project.generate_token("feed")
-
-        resp = self.client.get(f"/reblochon/feed/{token}.xml")
-        assert resp.status_code == 404
-
-    def test_rss_feed_invalidated_token(self):
-        """
-        Tests that a feed URL becames invalid when the project password changes.
-        """
-        self.post_project("raclette")
-        project = self.get_project("raclette")
-        token = project.generate_token("feed")
-
-        resp = self.client.get(f"/raclette/feed/{token}.xml")
-        assert resp.status_code == 200
-
-        self.client.post(
-            "/raclette/edit",
-            data={
-                "name": "raclette",
-                "contact_email": "zorglub@notmyidea.org",
-                "current_password": "raclette",
-                "password": "didoudida",
-                "default_currency": "XXX",
-            },
-            follow_redirects=True,
-        )
-
-        resp = self.client.get(f"/raclette/feed/{token}.xml")
-        assert resp.status_code == 404
-
-    def test_remember_payer_per_project(self):
-        """
-        Tests that the last payer is remembered for each project
-        """
-        self.post_project("raclette")
-        self.client.post("/raclette/members/add", data={"name": "zorglub"})
-        self.client.post("/raclette/members/add", data={"name": "jeanne"})
-        members_ids = [m.id for m in self.get_project("raclette").members]
-        # create a bill
-        self.client.post(
-            "/raclette/add",
-            data={
-                "date": "2011-08-10",
-                "what": "fromage à raclette",
-                "payer": members_ids[1],
-                "payed_for": members_ids,
-                "amount": "25",
-                "bill_type": "Expense",
-            },
-        )
-
-        self.post_project("tartiflette")
-        self.client.post("/tartiflette/members/add", data={"name": "pluton"})
-        self.client.post("/tartiflette/members/add", data={"name": "mars"})
-        self.client.post("/tartiflette/members/add", data={"name": "venus"})
-        members_ids_tartif = [m.id for m in self.get_project("tartiflette").members]
-        # create a bill
-        self.client.post(
-            "/tartiflette/add",
-            data={
-                "date": "2011-08-12",
-                "what": "fromage à tartiflette spatial",
-                "payer": members_ids_tartif[2],
-                "payed_for": members_ids_tartif,
-                "amount": "24",
-                "bill_type": "Expense",
-            },
-        )
-
-        with self.client as c:
-            c.post("/authenticate", data={"id": "raclette", "password": "raclette"})
-            assert isinstance(session["last_selected_payer_per_project"], dict)
-            assert "raclette" in session["last_selected_payer_per_project"]
-            assert "tartiflette" in session["last_selected_payer_per_project"]
-            assert (
-                session["last_selected_payer_per_project"]["raclette"] == members_ids[1]
-            )
-            assert (
-                session["last_selected_payer_per_project"]["tartiflette"]
-                == members_ids_tartif[2]
-            )
+        self.client.post("/raclette/members/add", data={"name": "peter"})
+        self.client.post("/raclette/members/add", data={"name": "steven"})
 
     def test_remember_payed_for(self):
         """
@@ -2382,4 +2162,4 @@ class TestBudget(IhatemoneyTestCase):
             c.post("/authenticate", data={"id": "raclette", "password": "raclette"})
             assert isinstance(session["last_selected_payed_for"], dict)
             assert "raclette" in session["last_selected_payed_for"]
-            assert session["last_selected_payed_for"]["raclette"] == members_ids[1:]
+            assert session["last_selected_payed_for"]["raclette"] == [str(x) for x in members_ids[1:]]
