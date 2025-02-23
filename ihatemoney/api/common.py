@@ -9,6 +9,7 @@ from ihatemoney.currency_convertor import CurrencyConverter
 from ihatemoney.emails import send_creation_email
 from ihatemoney.forms import EditProjectForm, MemberForm, ProjectForm, get_billform_for
 from ihatemoney.models import Bill, Person, Project, db
+from sqlalchemy import select
 
 
 def need_auth(f):
@@ -24,7 +25,7 @@ def need_auth(f):
 
         # Use Basic Auth
         if auth and project_id and auth.username.lower() == project_id:
-            project = Project.query.get(auth.username.lower())
+            project = db.session.get(Project, auth.username.lower())
             if project and check_password_hash(project.password, auth.password):
                 # The whole project object will be passed instead of project_id
                 kwargs.pop("project_id")
@@ -41,7 +42,7 @@ def need_auth(f):
                 auth_token, token_type="auth", project_id=project_id
             )
             if auth_token and project_id:
-                project = Project.query.get(project_id)
+                project = db.session.get(Project, project_id)
                 if project:
                     kwargs.pop("project_id")
                     return f(*args, project=project, **kwargs)
@@ -130,7 +131,7 @@ class MemberHandler(Resource):
     method_decorators = [need_auth]
 
     def get(self, project, member_id):
-        member = Person.query.get(member_id, project)
+        member = db.session.get(Person, member_id)
         if not member or member.project != project:
             return "Not Found", 404
         return member
@@ -138,7 +139,7 @@ class MemberHandler(Resource):
     def put(self, project, member_id):
         form = APIMemberForm(project, meta={"csrf": False}, edit=True)
         if form.validate():
-            member = Person.query.get(member_id, project)
+            member = db.session.get(Person, member_id)
             form.save(project, member)
             db.session.commit()
             return member
@@ -170,7 +171,7 @@ class BillHandler(Resource):
     method_decorators = [need_auth]
 
     def get(self, project, bill_id):
-        bill = Bill.query.get(project, bill_id)
+        bill = db.session.get(Bill, bill_id)
         if not bill:
             return "Not Found", 404
         return bill, 200
@@ -178,18 +179,19 @@ class BillHandler(Resource):
     def put(self, project, bill_id):
         form = get_billform_for(project, True, meta={"csrf": False})
         if form.validate():
-            bill = Bill.query.get(project, bill_id)
+            bill = db.session.get(Bill, bill_id)
             form.save(bill, project)
             db.session.commit()
             return bill.id, 200
         return form.errors, 400
 
     def delete(self, project, bill_id):
-        bill = Bill.query.delete(project, bill_id)
-        db.session.commit()
-        if not bill:
-            return "Not Found", 404
-        return "OK", 200
+        bill = db.session.get(Bill, bill_id)
+        if bill:
+            db.session.delete(bill)
+            db.session.commit()
+            return "OK", 200
+        return "Not Found", 404
 
 
 class TokenHandler(Resource):
