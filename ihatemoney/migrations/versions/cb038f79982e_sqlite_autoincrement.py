@@ -15,8 +15,8 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    bind = op.get_bind()
-    if bind.engine.name == "sqlite":
+    connection = op.get_bind()
+    if connection.engine.name == "sqlite":
         alter_table_batches = [
             op.batch_alter_table(
                 "person", recreate="always", table_kwargs={"sqlite_autoincrement": True}
@@ -37,8 +37,8 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    if bind.engine.name == "sqlite":
+    connection = op.get_bind()
+    if connection.engine.name == "sqlite":
         alter_table_batches = [
             op.batch_alter_table(
                 "person",

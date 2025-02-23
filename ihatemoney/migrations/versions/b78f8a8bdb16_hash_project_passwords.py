@@ -12,24 +12,24 @@ down_revision = "f629c8ef4ab0"
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import Column, String, UnicodeText, MetaData, Table, PrimaryKeyConstraint
 from werkzeug.security import generate_password_hash
-
-project_helper = sa.Table(
-    "project",
-    sa.MetaData(),
-    sa.Column("id", sa.String(length=64), nullable=False),
-    sa.Column("name", sa.UnicodeText(), nullable=True),
-    sa.Column("password", sa.String(length=128), nullable=True),
-    sa.Column("contact_email", sa.String(length=128), nullable=True),
-    sa.PrimaryKeyConstraint("id"),
-)
 
 
 def upgrade():
     connection = op.get_bind()
-    for project in connection.execute(project_helper.select()):
+    project_helper = Table(
+        "project",
+        MetaData(),
+        Column("id", String(length=64), nullable=False),
+        Column("name", UnicodeText(), nullable=True),
+        Column("password", String(length=128), nullable=True),
+        Column("contact_email", String(length=128), nullable=True),
+        PrimaryKeyConstraint("id"),
+    )
+    for project in connection.execute(sa.select(project_helper)):
         connection.execute(
-            project_helper.update()
+            sa.update(project_helper)
             .where(project_helper.c.name == project.name)
             .values(password=generate_password_hash(project.password))
         )
