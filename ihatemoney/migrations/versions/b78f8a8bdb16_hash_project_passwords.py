@@ -1,12 +1,3 @@
-"""hash project passwords
-
-Revision ID: b78f8a8bdb16
-Revises: f629c8ef4ab0
-Create Date: 2017-12-17 11:45:44.783238
-
-"""
-
-# revision identifiers, used by Alembic.
 revision = "b78f8a8bdb16"
 down_revision = "f629c8ef4ab0"
 
@@ -36,5 +27,4 @@ def upgrade():
 
 
 def downgrade():
-    # Downgrade path is not possible, because information has been lost.
     pass
