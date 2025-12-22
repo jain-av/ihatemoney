@@ -25,7 +25,6 @@ from wtforms.fields import (
 )
 
 try:
-    # Compat for WTForms <= 2.3.3
     from wtforms.fields.html5 import URLField
 except ModuleNotFoundError:
     from wtforms.fields import URLField
@@ -59,17 +58,10 @@ def strip_filter(string):
 
 
 def get_billform_for(project, set_default=True, **kwargs):
-    """Return an instance of BillForm configured for a particular project.
-
-    :set_default: if set to True, it will call set_default on GET methods (usually
-                  when we want to display the default form).
-
-    """
     form = BillForm(**kwargs)
     if form.original_currency.data is None:
         form.original_currency.data = project.default_currency
 
-    # Used in validate_original_currency
     form.project_currency = project.default_currency
 
     show_no_currency = form.original_currency.data == CurrencyConverter.no_currency
@@ -92,7 +84,6 @@ def get_billform_for(project, set_default=True, **kwargs):
 
 
 class CommaDecimalField(DecimalField):
-    """A class to deal with comma in Decimal Field"""
 
     def process_formdata(self, value):
         if value:
@@ -101,10 +92,6 @@ class CommaDecimalField(DecimalField):
 
 
 class CalculatorStringField(StringField):
-    """
-    A class to deal with math ops (+, -, *, /)
-    in StringField
-    """
 
     def process_formdata(self, valuelist):
         if valuelist:
@@ -115,7 +102,6 @@ class CalculatorStringField(StringField):
             )
             value = str(valuelist[0]).replace(",", ".")
 
-            # avoid exponents to prevent expensive calculations i.e 2**9999999999**9999999
             if not match(r"^[ 0-9\.\+\-\*/\(\)]{0,200}$", value) or "**" in value:
                 raise ValueError(Markup(message))
 
@@ -131,7 +117,6 @@ class EditProjectForm(FlaskForm):
         description=_("Enter existing private code to edit project"),
         validators=[DataRequired()],
     )
-    # If empty -> don't change the password
     password = PasswordField(
         _("New private code"),
         description=_("Enter a new code if you want to change it"),
@@ -151,12 +136,6 @@ class EditProjectForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         if not hasattr(self, "id"):
-            # We must access the project to validate the default currency, using its id.
-            # In ProjectForm, 'id' is provided, but not in this base class, so it *must*
-            # be provided by callers.
-            # Since id can be defined as a WTForms.StringField, we mimics it,
-            # using an object that can have a 'data' attribute.
-            # It defaults to empty string to ensure that query run smoothly.
             self.id = SimpleNamespace(data=kwargs.pop("id", ""))
         super().__init__(*args, **kwargs)
         self.default_currency.choices = [
@@ -173,7 +152,6 @@ class EditProjectForm(FlaskForm):
 
     @property
     def logging_preference(self):
-        """Get the LoggingMode object corresponding to current form data."""
         if not self.project_history.data:
             return LoggingMode.DISABLED
         else:
@@ -205,14 +183,10 @@ class EditProjectForm(FlaskForm):
             raise ValidationError(msg)
 
     def update(self, project):
-        """Update the project with the information from the form"""
         project.name = self.name.data
 
         if (
-            # Only update password if a new one is provided
             self.password.data
-            # Only update password if different from the previous one,
-            # to prevent spurious log entries
             and not check_password_hash(project.password, self.password.data)
         ):
             project.password = generate_password_hash(self.password.data)
@@ -237,23 +211,13 @@ class ImportProjectForm(FlaskForm):
 
 class ProjectForm(EditProjectForm):
     id = StringField(_("Project identifier"), validators=[DataRequired()])
-    # Remove this field that is inherited from EditProjectForm
     current_password = None
-    # This field overrides the one from EditProjectForm (to make it mandatory)
     password = PasswordField(_("Private code"), validators=[DataRequired()])
     submit = SubmitField(_("Create the project"))
 
     def save(self):
-        """Create a new project with the information given by this form.
-
-        Returns the created instance
-        """
-        # WTForms Boolean Fields don't insert the default value when the
-        # request doesn't include any value the way that other fields do,
-        # so we'll manually do it here
         self.project_history.data = LoggingMode.default() != LoggingMode.DISABLED
         self.ip_recording.data = LoggingMode.default() == LoggingMode.RECORD_IP
-        # Create project
         project = Project(
             name=self.name.data,
             id=self.id.data,
@@ -287,14 +251,6 @@ class ProjectFormWithCaptcha(ProjectForm):
 
 
 class DestructiveActionProjectForm(FlaskForm):
-    """Used for any important "delete" action linked to a project:
-
-    - delete project itself
-    - delete history
-    - delete IP addresses in history
-
-    It asks the participant to enter the private code to confirm deletion.
-    """
 
     password = PasswordField(
         _("Private code"),
@@ -303,7 +259,6 @@ class DestructiveActionProjectForm(FlaskForm):
     )
 
     def __init__(self, *args, **kwargs):
-        # Same trick as EditProjectForm: we need to know the project ID
         self.id = SimpleNamespace(data=kwargs.pop("id", ""))
         super().__init__(*args, **kwargs)
 
@@ -424,12 +379,9 @@ class BillForm(FlaskForm):
 
     def validate_amount(self, field):
         if decimal.Decimal(field.data) > decimal.MAX_EMAX:
-            # See https://github.com/python-babel/babel/issues/821
             raise ValidationError(f"Result is too high: {field.data}")
 
     def validate_original_currency(self, field):
-        # Workaround for currency API breakage
-        # See #1232
         if field.data not in [CurrencyConverter.no_currency, self.project_currency]:
             msg = _(
                 "Failed to convert from %(bill_currency)s currency to %(project_currency)s",
@@ -448,7 +400,6 @@ class HiddenIntegerField(HiddenField, IntegerField):
 
 
 class SettlementForm(FlaskForm):
-    """Used internally for validation, not directly visible to users"""
 
     amount = HiddenCommaDecimalField("Amount", validators=[DataRequired()])
     sender_id = HiddenIntegerField("Sender", validators=[DataRequired()])
@@ -477,11 +428,10 @@ class MemberForm(FlaskForm):
                 Person.project == self.project,
                 Person.activated,
             ).all()
-        ):  # NOQA
+        ):
             raise ValidationError(_("This project already have this participant"))
 
     def save(self, project, person):
-        # if the user is already bound to the project, just reactivate him
         person.name = self.name.data
         person.project = project
         person.weight = self.weight.data
@@ -512,6 +462,5 @@ class LogoutForm(FlaskForm):
 
 
 class EmptyForm(FlaskForm):
-    """Used for CSRF validation"""
 
     pass

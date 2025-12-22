@@ -30,9 +30,6 @@ limiter = limiter = Limiter(
 
 
 def slugify(value):
-    """Normalizes string, converts to lowercase, removes non-alpha characters,
-    and converts spaces to hyphens.
-    """
     if isinstance(value, str):
         import unicodedata
 
@@ -42,26 +39,14 @@ def slugify(value):
 
 
 def send_email(mail_message):
-    """Send an email using Flask-Mail, with proper error handling.
-
-    Return True if everything went well, and False if there was an error.
-    """
-    # Since Python 3.4, SMTPException and socket.error are actually
-    # identical, but this was not the case before.  Also, it is more clear
-    # to check for both.
     try:
         current_app.mail.send(mail_message)
     except (smtplib.SMTPException, socket.error):
         return False
-    # Email was sent successfully
     return True
 
 
 def flash_email_error(error_message, category="danger"):
-    """Helper to flash a message for email errors. It will also show the
-    admin email as a contact if MAIL_DEFAULT_SENDER is set to not the
-    default value and SHOW_ADMIN_EMAIL is True.
-    """
     (admin_name, admin_email) = email.utils.parseaddr(
         current_app.config.get("MAIL_DEFAULT_SENDER")
     )
@@ -84,11 +69,6 @@ def flash_email_error(error_message, category="danger"):
 
 
 class Redirect303(HTTPException, RoutingException):
-    """Raise if the map requests a redirect. This is for example the case if
-    `strict_slashes` are activated and an url that requires a trailing slash.
-
-    The attribute `new_url` contains the absolute destination url.
-    """
 
     code = 303
 
@@ -101,18 +81,6 @@ class Redirect303(HTTPException, RoutingException):
 
 
 class PrefixedWSGI(object):
-    """
-    Wrap the application in this middleware and configure the
-    front-end server to add these headers, to let you quietly bind
-    this to a URL other than / and to an HTTP scheme that is
-    different than what is used locally.
-
-    It relies on "APPLICATION_ROOT" app setting.
-
-    Inspired from http://flask.pocoo.org/snippets/35/
-
-    :param app: the WSGI application
-    """
 
     def __init__(self, app):
         self.app = app
@@ -124,7 +92,7 @@ class PrefixedWSGI(object):
             environ["SCRIPT_NAME"] = script_name
             path_info = environ["PATH_INFO"]
             if path_info.startswith(script_name):
-                environ["PATH_INFO"] = path_info[len(script_name) :]  # NOQA
+                environ["PATH_INFO"] = path_info[len(script_name) :]
 
         scheme = environ.get("HTTP_X_SCHEME", "")
         if scheme:
@@ -133,14 +101,7 @@ class PrefixedWSGI(object):
 
 
 def minimal_round(*args, **kw):
-    """Jinja2 filter: rounds, but display only non-zero decimals
-
-    from http://stackoverflow.com/questions/28458524/
-    """
-    # Use the original round filter, to deal with the extra arguments
     res = jinja2.filters.do_round(*args, **kw)
-    # Test if the result is equivalent to an integer and
-    # return depending on it
     ires = int(res)
     return res if res != ires else ires
 
@@ -156,14 +117,10 @@ def locale_from_iso(iso_code):
 
 
 def list_of_dicts2json(dict_to_convert):
-    """Take a list of dictionnaries and turns it into
-    a json in-memory file
-    """
     return BytesIO(dumps(dict_to_convert).encode("utf-8"))
 
 
 def escape_csv_formulae(value):
-    # See https://owasp.org/www-community/attacks/CSV_Injection
     if (
         value
         and isinstance(value, str)
@@ -174,21 +131,13 @@ def escape_csv_formulae(value):
 
 
 def list_of_dicts2csv(dict_to_convert):
-    """Take a list of dictionnaries and turns it into
-    a csv in-memory file, assume all dict have the same keys
-    """
-    # CSV writer has a different behavior in PY2 and PY3
-    # http://stackoverflow.com/a/37974772
     try:
         csv_file = StringIO()
-        # using list() for py3.4 compat. Otherwise, writerows() fails
-        # (expecting a sequence getting a view)
         csv_data = [list(dict_to_convert[0].keys())]
         for dic in dict_to_convert:
             csv_data.append(
                 [escape_csv_formulae(dic[h]) for h in dict_to_convert[0].keys()]
             )
-            # csv_data.append([dic[h] for h in dict_to_convert[0].keys()])
     except (KeyError, IndexError):
         csv_data = []
     writer = csv.writer(csv_file)
@@ -199,19 +148,10 @@ def list_of_dicts2csv(dict_to_convert):
 
 
 def csv2list_of_dicts(csv_to_convert):
-    """Take a csv in-memory file and turns it into
-    a list of dictionnaries
-    """
     csv_file = TextIOWrapper(csv_to_convert, encoding="utf-8")
     reader = csv.DictReader(csv_file)
     result = []
     for r in reader:
-        """
-        cospend embeds various data helping (cospend) imports
-        'deleteMeIfYouWant' lines contains users
-        'categoryname' table contains categories description
-        we don't need them as we determine users and categories from bills
-        """
         if r["what"] == "deleteMeIfYouWant":
             continue
         elif r["what"] == "categoryname":
@@ -225,13 +165,6 @@ def csv2list_of_dicts(csv_to_convert):
 
 
 def create_jinja_env(folder, strict_rendering=False):
-    """Creates and return a Jinja2 Environment object, used, to load the
-    templates.
-
-    :param strict_rendering:
-        if set to `True`, all templates which use an undefined variable will
-        throw an exception (default to `False`).
-    """
     loader = jinja2.PackageLoader("ihatemoney", folder)
     kwargs = {"loader": loader}
     if strict_rendering:
@@ -240,8 +173,6 @@ def create_jinja_env(folder, strict_rendering=False):
 
 
 class IhmJSONEncoder(JSONEncoder):
-    """Subclass of the default encoder to support custom objects.
-    Taken from the deprecated flask-rest package."""
 
     def default(self, o):
         if hasattr(o, "_to_serialize"):
@@ -261,7 +192,6 @@ class IhmJSONEncoder(JSONEncoder):
 
 def eval_arithmetic_expression(expr):
     def _eval(node):
-        # supported operators
         operators = {
             ast.Add: operator.add,
             ast.Sub: operator.sub,
@@ -270,11 +200,11 @@ def eval_arithmetic_expression(expr):
             ast.USub: operator.neg,
         }
 
-        if isinstance(node, ast.Num):  # <number>
+        if isinstance(node, ast.Num):
             return node.n
-        elif isinstance(node, ast.BinOp):  # <left> <operator> <right>
+        elif isinstance(node, ast.BinOp):
             return operators[type(node.op)](_eval(node.left), _eval(node.right))
-        elif isinstance(node, ast.UnaryOp):  # <operator> <operand> e.g., -1
+        elif isinstance(node, ast.UnaryOp):
             return operators[type(node.op)](_eval(node.operand))
         else:
             raise TypeError(node)
@@ -320,7 +250,6 @@ def same_bill(bill1, bill2):
 
 
 class FormEnum(Enum):
-    """Extend builtin Enum class to be seamlessly compatible with WTForms"""
 
     @classmethod
     def choices(cls):
@@ -328,14 +257,9 @@ class FormEnum(Enum):
 
     @classmethod
     def coerce(cls, item):
-        """Coerce a str or int representation into an Enum object"""
         if isinstance(item, cls):
             return item
 
-        # If item is not already a Enum object then it must be
-        # a string or int corresponding to an ID (e.g. '0' or 1)
-        # Either int() or cls() will correctly throw a TypeError if this
-        # is not the case
         return cls(int(item))
 
     def __str__(self):
@@ -343,8 +267,6 @@ class FormEnum(Enum):
 
 
 def em_surround(string, regex_escape=False):
-    # Needed since we're going to assume this is safe later in order to render
-    # the <em> tag we're adding
     string = escape(string)
 
     if regex_escape:
@@ -354,26 +276,6 @@ def em_surround(string, regex_escape=False):
 
 
 def localize_list(items, surround_with_em=True):
-    """
-    Localize a list, optionally surrounding each item in <em> tags.
-
-    Uses the appropriate joining character, oxford comma behavior, and handles
-    1, and 2 object lists, all according to localizable behavior.
-
-    Examples (using en locale):
-        >>> localize_list([1,2,3,4,5], False)
-        1, 2, 3, 4, and 5
-
-        >>> localize_list([1,2], False)
-        1 and 2
-
-    Based on the LUA example from:
-    https://stackoverflow.com/a/58033018
-
-    :param list: The list of objects to localize by a call to str()
-    :param surround_with_em: Optionally surround each object with <em> tags
-    :return: A locally formatted list of objects
-    """
 
     if len(items) == 0:
         return ""
@@ -384,16 +286,13 @@ def localize_list(items, surround_with_em=True):
     if len(wrapped_items) == 1:
         return str(wrapped_items[0])
     elif len(wrapped_items) == 2:
-        # I18N: List with two items only
         return _("{dual_object_0} and {dual_object_1}").format(
             dual_object_0=wrapped_items[0], dual_object_1=wrapped_items[1]
         )
     else:
-        # I18N: Last two items of a list with more than 3 items
         output_str = _("{previous_object}, and {end_object}").format(
             previous_object="{previous_object}", end_object=wrapped_items.pop()
         )
-        # I18N: Two items in a middle of a list with more than 5 objects
         middle = _("{previous_object}, {next_object}")
         while len(wrapped_items) > 2:
             temp = middle.format(
@@ -403,7 +302,6 @@ def localize_list(items, surround_with_em=True):
             output_str = output_str.format(previous_object=temp)
 
         output_str = output_str.format(previous_object=wrapped_items.pop())
-        # I18N: First two items of a list with more than 3 items
         output_str = _("{start_object}, {next_object}").format(
             start_object="{start_object}", next_object=output_str
         )
@@ -411,7 +309,6 @@ def localize_list(items, surround_with_em=True):
 
 
 def render_localized_currency(code, detailed=True):
-    # We cannot use CurrencyConvertor.no_currency here because of circular dependencies
     if code == "XXX":
         return _("No Currency")
     locale = get_locale() or "en_US"
@@ -426,27 +323,18 @@ def render_localized_currency(code, detailed=True):
 
 
 def render_localized_template(template_name_prefix, **context):
-    """Like render_template(), but selects the right template according to the
-    current user language.  Fallback to English if a template for the
-    current language does not exist.
-    """
     fallback = "en"
     templates = [
         f"{template_name_prefix}.{lang}.j2"
         for lang in (get_locale().language, fallback)
     ]
-    # render_template() supports a list of templates to try in order
     return render_template(templates, **context)
 
 
 def format_form_errors(form, prefix):
-    """Format all form errors into a single string, with a string prefix in
-    front.  Useful for flashing the result.
-    """
     if len(form.errors) == 0:
         return ""
     elif len(form.errors) == 1:
-        # I18N: Form error with only one error
         return _("{prefix}: {error}").format(
             prefix=prefix, error=form.errors.popitem()[1][0]
         )
@@ -457,7 +345,6 @@ def format_form_errors(form, prefix):
             for error in errors
         )
         errors = f"<ul><li>{error_list}</li></ul>"
-        # I18N: Form error with a list of errors
         return Markup(_("{prefix}:<br />{errors}").format(prefix=prefix, errors=errors))
 
 
