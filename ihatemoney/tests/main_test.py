@@ -17,7 +17,6 @@ from ihatemoney.manage import (
 from ihatemoney.run import load_configuration
 from ihatemoney.tests.common.ihatemoney_testcase import BaseTestCase, IhatemoneyTestCase
 
-# Unset configuration file env var if previously set
 os.environ.pop("IHATEMONEY_SETTINGS_FILE_PATH", None)
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +24,6 @@ __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 class TestConfiguration(BaseTestCase):
     def test_default_configuration(self):
-        """Test that default settings are loaded when no other configuration file is specified"""
         assert not self.app.config["DEBUG"]
         assert not self.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]
         assert self.app.config["MAIL_DEFAULT_SENDER"] == (
@@ -37,17 +35,12 @@ class TestConfiguration(BaseTestCase):
         assert not self.app.config["ENABLE_CAPTCHA"]
 
     def test_env_var_configuration_file(self):
-        """Test that settings are loaded from a configuration file specified
-        with an environment variable."""
         os.environ["IHATEMONEY_SETTINGS_FILE_PATH"] = os.path.join(
             __HERE__, "ihatemoney_envvar.cfg"
         )
         load_configuration(self.app)
         assert self.app.config["SECRET_KEY"] == "lalatra"
 
-        # Test that the specified configuration file is loaded
-        # even if the default configuration file ihatemoney.cfg exists
-        # in the current directory.
         os.environ["IHATEMONEY_SETTINGS_FILE_PATH"] = os.path.join(
             __HERE__, "ihatemoney_envvar.cfg"
         )
@@ -58,8 +51,6 @@ class TestConfiguration(BaseTestCase):
         os.environ.pop("IHATEMONEY_SETTINGS_FILE_PATH", None)
 
     def test_default_configuration_file(self):
-        """Test that settings are loaded from a configuration file if one is found
-        in the current directory."""
         self.app.config.root_path = __HERE__
         load_configuration(self.app)
         assert self.app.config["SECRET_KEY"] == "supersecret"
@@ -67,7 +58,6 @@ class TestConfiguration(BaseTestCase):
 
 class TestServer(IhatemoneyTestCase):
     def test_homepage(self):
-        # See https://github.com/spiral-project/ihatemoney/pull/358
         self.app.config["APPLICATION_ROOT"] = "/"
         req = self.client.get("/")
         self.assertStatus(200, req)
@@ -85,10 +75,6 @@ class TestServer(IhatemoneyTestCase):
 
 class TestCommand(BaseTestCase):
     def test_generate_config(self):
-        """Simply checks that all config file generation
-        - raise no exception
-        - produce something non-empty
-        """
         runner = self.app.test_cli_runner()
         for config_file in generate_config.params[0].type.choices:
             result = runner.invoke(generate_config, config_file)
@@ -112,17 +98,13 @@ class TestCommand(BaseTestCase):
 
 class TestModels(IhatemoneyTestCase):
     def test_weighted_bills(self):
-        """Test the SQL request that fetch all bills and weights"""
         self.post_project("raclette")
 
-        # add members
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "jeanne"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
-        # Add a member with a balance=0 :
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
         self.client.post(
             "/raclette/add",
             data={
@@ -173,14 +155,11 @@ class TestModels(IhatemoneyTestCase):
     def test_bill_pay_each(self):
         self.post_project("raclette")
 
-        # add members
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "jeanne"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
-        # Add a member with a balance=0 :
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
         self.client.post(
             "/raclette/add",
             data={
@@ -234,16 +213,13 @@ class TestModels(IhatemoneyTestCase):
                 assert bill.pay_each() == pay_each_expected
 
     def test_demo_project_count(self):
-        """Test command the get-project-count"""
         self.post_project("raclette")
 
-        # add members
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "fred"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
         self.client.post(
             "/raclette/add",
             data={
@@ -268,7 +244,6 @@ class TestModels(IhatemoneyTestCase):
 
         assert self.get_project("raclette").has_bills()
 
-        # Now check the different parameters
         runner = self.app.test_cli_runner()
         result0 = runner.invoke(get_project_count)
         assert result0.output.strip() == "Number of projects: 1"
