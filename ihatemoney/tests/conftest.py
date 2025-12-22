@@ -21,10 +21,8 @@ def jinja_cache_directory(tmp_path_factory):
 
 @pytest.fixture
 def app(request: pytest.FixtureRequest, jinja_cache_directory):
-    """Create the Flask app with database"""
     app = create_app(request.cls)
 
-    # Caches the jinja templates so they are compiled only once per test session
     app.jinja_env.bytecode_cache = FileSystemBytecodeCache(jinja_cache_directory)
 
     with app.app_context():
@@ -33,7 +31,6 @@ def app(request: pytest.FixtureRequest, jinja_cache_directory):
 
     yield app
 
-    # clean after testing
     db.session.remove()
     db.drop_all()
 
@@ -48,7 +45,6 @@ def client(app: Flask, request: pytest.FixtureRequest):
 
 @pytest.fixture
 def converter(request: pytest.FixtureRequest):
-    # Add dummy data to CurrencyConverter for all tests (since it's a singleton)
     mock_data = {
         "USD": 1,
         "EUR": 0.8,
@@ -58,7 +54,6 @@ def converter(request: pytest.FixtureRequest):
     }
     converter = CurrencyConverter()
     converter.get_rates = MagicMock(return_value=mock_data)
-    # Also add it to an attribute to make tests clearer
     request.cls.converter = converter
 
     yield converter

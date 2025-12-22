@@ -12,25 +12,17 @@ from ihatemoney.models import Bill, Person, Project, db
 
 
 def need_auth(f):
-    """Check the request for basic authentication for a given project.
-
-    Return the project if the authorization is good, abort the request with a 401 otherwise
-    """
-
     @wraps(f)
     def wrapper(*args, **kwargs):
         auth = request.authorization
         project_id = kwargs.get("project_id").lower()
 
-        # Use Basic Auth
         if auth and project_id and auth.username.lower() == project_id:
             project = Project.query.get(auth.username.lower())
             if project and check_password_hash(project.password, auth.password):
-                # The whole project object will be passed instead of project_id
                 kwargs.pop("project_id")
                 return f(*args, project=project, **kwargs)
         else:
-            # Use Bearer token Auth
             auth_header = request.headers.get("Authorization", "")
             auth_token = ""
             try:
@@ -98,11 +90,6 @@ class ProjectStatsHandler(Resource):
 
 
 class APIMemberForm(MemberForm):
-    """Member is not disablable via a Form.
-
-    But we want Member.enabled to be togglable via the API.
-    """
-
     activated = BooleanField(false_values=("false", "", "False"))
 
     def save(self, project, person):
