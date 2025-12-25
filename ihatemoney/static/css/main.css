@@ -2,14 +2,9 @@
 @import "tagsinput.css";
 @import "../fonts/fontfaces.css";
 
-/* General */
-
 body {
-  /* For fixed navbar */
   padding-top: 3.5rem;
 }
-
-/* Navbar */
 
 .navbar-brand span {
   color: #abe128;
@@ -40,8 +35,6 @@ body {
     margin-left: auto !important;
   }
 }
-
-/* Header */
 
 #header {
   padding-bottom: 2em;
@@ -76,7 +69,6 @@ body {
 }
 
 #header .side-to-side {
-  /* avoid the man with his hand pointing at nothing */
   white-space: nowrap;
 }
 
@@ -91,8 +83,6 @@ body {
   font-family: "Comfortaa", arial, serif;
   color: #000;
 }
-
-/* Sidebar */
 
 .balance tr td {
   font-weight: bold;
@@ -142,13 +132,10 @@ body {
   overflow-x: hidden;
 }
 
-/* Content */
-
 .content {
   margin-top: 1rem;
 }
 
-/* Home */
 .home-container {
   background: linear-gradient(150deg, #abe128 0%, #43ca61 100%);
 }
@@ -177,8 +164,6 @@ body {
     min-width: unset;
   }
 }
-
-/* Other */
 
 #bills {
   color: black;
@@ -226,7 +211,6 @@ footer .footer-left p {
   margin: 0;
 }
 
-/* Footer links */
 footer p.footer-links {
   font-size: 18px;
   font-weight: bold;
@@ -267,7 +251,6 @@ footer .footer-right a {
 
 @-moz-document url-prefix() {
 
-  /** Firefox style fix **/
   footer .footer-right a {
     padding-top: 2px;
   }
@@ -281,8 +264,6 @@ footer .footer-left {
   padding-top: 6px;
   line-height: 35px;
 }
-
-/* If you don't want the footer to be responsive, remove these media queries */
 
 @media (max-width: 600px) {
 
@@ -301,7 +282,6 @@ footer .footer-left {
   }
 }
 
-/* Avoid text color flickering when it loose focus as the modal appears */
 .btn-primary[data-toggle="modal"] {
   color: #fff;
 }
@@ -312,7 +292,6 @@ footer .footer-left {
   column-gap: 8px;
   min-height: 56px;
 
-  /* To be able to set absolute element positionning for confirm deletion */
   position: relative;
 }
 
@@ -365,7 +344,6 @@ footer .footer-left {
 
   .split_bills,
   #table_overflow.statistics {
-    /* The table is shifted to left, so add the spacer width on the right to match */
     width: calc(100% + 15px);
   }
 }
@@ -424,7 +402,6 @@ footer .footer-left {
   display: table-cell;
 }
 
-/* used to tuncate long urls */
 .truncated {
     white-space: nowrap;
     overflow: hidden;
@@ -512,8 +489,6 @@ tr:hover .extra-info {
   visibility: visible;
 }
 
-/* Fluid Offsets for Boostrap */
-
 .row-fluid>[class*="span"]:not([class*="offset"]):first-child {
   margin-left: 0;
 }
@@ -588,7 +563,6 @@ tr:hover .extra-info {
   border-bottom: 0.2em solid transparent;
   height: 1.2em;
   width: 1.2em;
-  /* protection for IE11 */
 }
 
 .icon.high svg {
@@ -621,7 +595,6 @@ footer .icon svg {
   fill: white !important;
 }
 
-/* align the first column */
 #monthly_stats tr *:first-child {
   text-align: right;
   width: 200px;
@@ -634,8 +607,6 @@ footer .icon svg {
 #history_warnings {
   margin-top: 30px;
 }
-
-/* edit settings */
 
 .edit-project form {
   margin-top: 1em;
