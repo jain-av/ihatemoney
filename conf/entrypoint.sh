@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# Fail the whole script on the first failure.
 set -e
 
 cat <<EOF >/etc/ihatemoney/ihatemoney.cfg
@@ -36,7 +35,6 @@ User uid: $PUID
 User gid: $PGID
 "
 
-# Start gunicorn without forking
 cmd="exec gunicorn ihatemoney.wsgi:application \
      -b 0.0.0.0:$PORT \
      --log-syslog \
