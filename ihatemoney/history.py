@@ -4,7 +4,7 @@ from ihatemoney.models import BillVersion, Person, PersonVersion, ProjectVersion
 
 
 def get_history_queries(project):
-    """Generate queries for each type of version object for a given project."""
+    
     person_changes = PersonVersion.query.filter_by(project_id=project.id)
 
     project_changes = ProjectVersion.query.filter_by(id=project.id)
@@ -21,12 +21,7 @@ def get_history_queries(project):
 
 
 def history_sort_key(history_item_dict):
-    """
-    Return the key necessary to sort history entries. First order sort is time
-    of modification, but for simultaneous modifications we make the re-name
-    modification occur last so that the simultaneous entries make sense using
-    the old name.
-    """
+    
     second_order = 0
     if "prop_changed" in history_item_dict:
         changed_property = history_item_dict["prop_changed"]
@@ -37,7 +32,7 @@ def history_sort_key(history_item_dict):
 
 
 def describe_version(version_obj):
-    """Use the base model str() function to describe a version object"""
+    
     if not version_obj:
         return ""
     else:
@@ -45,7 +40,7 @@ def describe_version(version_obj):
 
 
 def describe_owers_change(version, human_readable_names):
-    """Compute the set difference to get added/removed owers lists."""
+    
     before_owers = {version.id: version for version in version.previous.owers}
     after_owers = {version.id: version for version in version.owers}
 
@@ -62,21 +57,17 @@ def describe_owers_change(version, human_readable_names):
 
 
 def get_history(project, human_readable_names=True):
-    """
-    Fetch history for all models associated with a given project.
-    :param human_readable_names Whether to replace id numbers with readable names
-    :return A sorted list of dicts with history information
-    """
+    
     person_query, project_query, bill_query = get_history_queries(project)
     history = []
     for version_list in [person_query.all(), project_query.all(), bill_query.all()]:
         for version in version_list:
             object_type = parent_class(type(version)).__name__
 
-            # The history.html template can only handle objects of these types
+            
             assert object_type in ["Person", "Bill", "Project"]
 
-            # Use the old name if applicable
+            
             if version.previous:
                 object_str = describe_version(version.previous)
             else:
@@ -107,8 +98,8 @@ def get_history(project, human_readable_names=True):
                 common_properties["bill_details"] = details
 
             if version.operation_type == Operation.UPDATE:
-                # Only iterate the changeset if the previous version
-                # Was logged
+                
+                
                 if version.previous:
                     changeset = version.changeset
                     if isinstance(version, BillVersion):
@@ -122,7 +113,7 @@ def get_history(project, human_readable_names=True):
                             if removed:
                                 changeset["owers_removed"] = (None, removed)
 
-                        # Remove converted_amount if amount changed in the same way.
+                        
                         if (
                             "amount" in changeset
                             and "converted_amount" in changeset
@@ -157,9 +148,6 @@ def get_history(project, human_readable_names=True):
 
 
 def purge_history(project):
-    """
-    Erase history linked to a project.
-    You must commit the purge after calling this function.
-    """
+    
     for query in get_history_queries(project):
         query.delete(synchronize_session="fetch")

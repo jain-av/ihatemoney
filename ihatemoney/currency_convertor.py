@@ -15,7 +15,7 @@ class Singleton(type):
 
 
 class CurrencyConverter(object, metaclass=Singleton):
-    # Get exchange rates
+    
     no_currency = "XXX"
     api_url = "https://api.exchangerate.host/latest?base=USD"
 
@@ -30,7 +30,7 @@ class CurrencyConverter(object, metaclass=Singleton):
             warnings.warn(
                 f"Call to {self.api_url} failed: {traceback.format_exc(limit=0).strip()}"
             )
-            # In case of any exception, let's have an empty value
+            
             rates = {}
         rates[self.no_currency] = 1.0
         return rates
@@ -224,5 +224,5 @@ class CurrencyConverter(object, metaclass=Singleton):
         source_rate = rates[source_currency]
         dest_rate = rates[dest_currency]
         new_amount = (float(amount) / source_rate) * dest_rate
-        # round to two digits because we are dealing with money
+        
         return round(new_amount, 2)
