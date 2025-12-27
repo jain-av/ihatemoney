@@ -17,7 +17,7 @@ from ihatemoney.manage import (
 from ihatemoney.run import load_configuration
 from ihatemoney.tests.common.ihatemoney_testcase import BaseTestCase, IhatemoneyTestCase
 
-# Unset configuration file env var if previously set
+                                                    
 os.environ.pop("IHATEMONEY_SETTINGS_FILE_PATH", None)
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +25,7 @@ __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 class TestConfiguration(BaseTestCase):
     def test_default_configuration(self):
-        """Test that default settings are loaded when no other configuration file is specified"""
+                                                                                                 
         assert not self.app.config["DEBUG"]
         assert not self.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]
         assert self.app.config["MAIL_DEFAULT_SENDER"] == (
@@ -37,17 +37,16 @@ class TestConfiguration(BaseTestCase):
         assert not self.app.config["ENABLE_CAPTCHA"]
 
     def test_env_var_configuration_file(self):
-        """Test that settings are loaded from a configuration file specified
-        with an environment variable."""
+                                                
         os.environ["IHATEMONEY_SETTINGS_FILE_PATH"] = os.path.join(
             __HERE__, "ihatemoney_envvar.cfg"
         )
         load_configuration(self.app)
         assert self.app.config["SECRET_KEY"] == "lalatra"
 
-        # Test that the specified configuration file is loaded
-        # even if the default configuration file ihatemoney.cfg exists
-        # in the current directory.
+                                                              
+                                                                      
+                                   
         os.environ["IHATEMONEY_SETTINGS_FILE_PATH"] = os.path.join(
             __HERE__, "ihatemoney_envvar.cfg"
         )
@@ -58,8 +57,7 @@ class TestConfiguration(BaseTestCase):
         os.environ.pop("IHATEMONEY_SETTINGS_FILE_PATH", None)
 
     def test_default_configuration_file(self):
-        """Test that settings are loaded from a configuration file if one is found
-        in the current directory."""
+                                            
         self.app.config.root_path = __HERE__
         load_configuration(self.app)
         assert self.app.config["SECRET_KEY"] == "supersecret"
@@ -67,7 +65,7 @@ class TestConfiguration(BaseTestCase):
 
 class TestServer(IhatemoneyTestCase):
     def test_homepage(self):
-        # See https://github.com/spiral-project/ihatemoney/pull/358
+                                                                   
         self.app.config["APPLICATION_ROOT"] = "/"
         req = self.client.get("/")
         self.assertStatus(200, req)
@@ -85,10 +83,7 @@ class TestServer(IhatemoneyTestCase):
 
 class TestCommand(BaseTestCase):
     def test_generate_config(self):
-        """Simply checks that all config file generation
-        - raise no exception
-        - produce something non-empty
-        """
+                   
         runner = self.app.test_cli_runner()
         for config_file in generate_config.params[0].type.choices:
             result = runner.invoke(generate_config, config_file)
@@ -112,17 +107,17 @@ class TestCommand(BaseTestCase):
 
 class TestModels(IhatemoneyTestCase):
     def test_weighted_bills(self):
-        """Test the SQL request that fetch all bills and weights"""
+                                                                   
         self.post_project("raclette")
 
-        # add members
+                     
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "jeanne"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
-        # Add a member with a balance=0 :
+                                         
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
+                      
         self.client.post(
             "/raclette/add",
             data={
@@ -173,14 +168,14 @@ class TestModels(IhatemoneyTestCase):
     def test_bill_pay_each(self):
         self.post_project("raclette")
 
-        # add members
+                     
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "jeanne"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
-        # Add a member with a balance=0 :
+                                         
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
+                      
         self.client.post(
             "/raclette/add",
             data={
@@ -234,16 +229,16 @@ class TestModels(IhatemoneyTestCase):
                 assert bill.pay_each() == pay_each_expected
 
     def test_demo_project_count(self):
-        """Test command the get-project-count"""
+                                                
         self.post_project("raclette")
 
-        # add members
+                     
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "fred"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
+                      
         self.client.post(
             "/raclette/add",
             data={
@@ -268,27 +263,27 @@ class TestModels(IhatemoneyTestCase):
 
         assert self.get_project("raclette").has_bills()
 
-        # Now check the different parameters
+                                            
         runner = self.app.test_cli_runner()
         result0 = runner.invoke(get_project_count)
         assert result0.output.strip() == "Number of projects: 1"
 
-        # With more than 1 bill, without printing emails
+                                                        
         result1 = runner.invoke(get_project_count, "False 1")
         assert result1.output.strip() == "Number of projects: 1"
 
-        # With more than 2 bill, without printing emails
+                                                        
         result2 = runner.invoke(get_project_count, "False 2")
         assert result2.output.strip() == "Number of projects: 0"
 
-        # With more than 0 days old
+                                   
         result3 = runner.invoke(get_project_count, "False 0 0")
         assert result3.output.strip() == "Number of projects: 0"
 
         result4 = runner.invoke(get_project_count, "False 0 20000")
         assert result4.output.strip() == "Number of projects: 1"
 
-        # Print emails
+                      
         result5 = runner.invoke(get_project_count, "True")
         assert "raclette@notmyidea.org" in result5.output
 
@@ -300,12 +295,12 @@ class TestEmailFailure(IhatemoneyTestCase):
             self.app.mail, "send", MagicMock(side_effect=smtplib.SMTPException)
         ):
             resp = self.post_project("raclette")
-        # Check that an error message is displayed
+                                                  
         assert (
             "We tried to send you an reminder email, but there was an error"
             in resp.data.decode("utf-8")
         )
-        # Check that we were redirected to the home page anyway
+                                                               
         assert (
             '<a href="/raclette/members/add">Add the first participant'
             in resp.data.decode("utf-8")
@@ -315,12 +310,12 @@ class TestEmailFailure(IhatemoneyTestCase):
         self.login("raclette")
         with patch.object(self.app.mail, "send", MagicMock(side_effect=socket.error)):
             resp = self.post_project("raclette")
-        # Check that an error message is displayed
+                                                  
         assert (
             "We tried to send you an reminder email, but there was an error"
             in resp.data.decode("utf-8")
         )
-        # Check that we were redirected to the home page anyway
+                                                               
         assert (
             '<a href="/raclette/members/add">Add the first participant'
             in resp.data.decode("utf-8")
@@ -333,11 +328,11 @@ class TestEmailFailure(IhatemoneyTestCase):
                 resp = self.client.post(
                     "/password-reminder", data={"id": "raclette"}, follow_redirects=True
                 )
-            # Check that an error message is displayed
+                                                      
             assert "there was an error while sending you an email" in resp.data.decode(
                 "utf-8"
             )
-            # Check that we were not redirected to the success page
+                                                                   
             assert (
                 "A link to reset your password has been sent to you"
                 not in resp.data.decode("utf-8")
@@ -353,12 +348,12 @@ class TestEmailFailure(IhatemoneyTestCase):
                     data={"emails": "toto@notmyidea.org"},
                     follow_redirects=True,
                 )
-            # Check that an error message is displayed
+                                                      
             assert (
                 "there was an error while trying to send the invitation emails"
                 in resp.data.decode("utf-8")
             )
-            # Check that we are still on the same page (no redirection)
+                                                                       
             assert "Invite people to join this project" in resp.data.decode("utf-8")
 
 
@@ -366,8 +361,8 @@ class TestCaptcha(IhatemoneyTestCase):
     ENABLE_CAPTCHA = True
 
     def test_project_creation_with_captcha_case_insensitive(self):
-        # Test that case doesn't matter
-        # Patch the lazy_gettext as it is imported as '_' in forms for captcha value check
+                                       
+                                                                                          
         with patch("ihatemoney.forms._", new=lambda x: "ÉÙÜẞ"), self.client as c:
             c.post(
                 "/create",
@@ -465,7 +460,7 @@ class TestCurrencyConverter:
     def test_failing_remote(self):
         rates = {}
         with patch("requests.Response.json", new=lambda _: {}):
-            # we need a non-patched converter, but it seems that MagickMock
-            # is mocking EVERY instance of the class method. Too bad.
+                                                                           
+                                                                     
             rates = CurrencyConverter.get_rates(self.converter)
         assert rates == {CurrencyConverter.no_currency: 1}

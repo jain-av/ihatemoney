@@ -34,10 +34,10 @@ class BaseTestCase:
         password=None,
         project_history=True,
     ):
-        """Create a fake project"""
+                                   
         name = name or id
         password = password or id
-        # create the project
+                            
         return self.client.post(
             "/create",
             data={
@@ -55,7 +55,7 @@ class BaseTestCase:
         resp = self.client.post(
             f"/{id}/import",
             data=data,
-            # follow_redirects=True,
+                                    
         )
         assert ("/{id}/edit" in str(resp.response)) == (not success)
 
@@ -78,7 +78,7 @@ class BaseTestCase:
 
 class IhatemoneyTestCase(BaseTestCase):
     TESTING = True
-    WTF_CSRF_ENABLED = False  # Simplifies the tests.
+    WTF_CSRF_ENABLED = False                         
 
     def assertStatus(self, expected, resp, url=None):
         if url is None:

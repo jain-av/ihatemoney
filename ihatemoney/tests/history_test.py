@@ -37,7 +37,7 @@ class TestHistory(IhatemoneyTestCase):
         assert "127.0.0.1" not in resp.data.decode("utf-8")
 
     def change_privacy_to(self, current_password, logging_preference):
-        # Change only logging_preferences
+                                         
         new_data = {
             "name": "demo",
             "contact_email": "demo@notmyidea.org",
@@ -51,7 +51,7 @@ class TestHistory(IhatemoneyTestCase):
             if logging_preference == LoggingMode.RECORD_IP:
                 new_data["ip_recording"] = "y"
 
-        # Disable History
+                         
         resp = self.client.post("/demo/edit", data=new_data, follow_redirects=True)
         assert resp.status_code == 200
         assert "alert-danger" not in resp.data.decode("utf-8")
@@ -93,7 +93,7 @@ class TestHistory(IhatemoneyTestCase):
             "current_password": "demo",
             "password": "123456",
             "project_history": "y",
-            "default_currency": "USD",  # Currency changed from default
+            "default_currency": "USD",                                 
         }
 
         resp = self.client.post("/demo/edit", data=new_data, follow_redirects=True)
@@ -187,7 +187,7 @@ class TestHistory(IhatemoneyTestCase):
             "default_currency": "USD",
         }
 
-        # Keep privacy settings where they were
+                                               
         if logging_mode != LoggingMode.DISABLED:
             new_data["project_history"] = "y"
             if logging_mode == LoggingMode.RECORD_IP:
@@ -196,7 +196,7 @@ class TestHistory(IhatemoneyTestCase):
         resp = self.client.post("/demo/edit", data=new_data, follow_redirects=True)
         assert resp.status_code == 200
 
-        # adds a member to this project
+                                       
         resp = self.client.post(
             "/demo/members/add", data={"name": "zorglub"}, follow_redirects=True
         )
@@ -204,7 +204,7 @@ class TestHistory(IhatemoneyTestCase):
 
         user_id = models.Person.query.one().id
 
-        # create a bill
+                       
         resp = self.client.post(
             "/demo/add",
             data={
@@ -221,7 +221,7 @@ class TestHistory(IhatemoneyTestCase):
 
         bill_id = models.Bill.query.one().id
 
-        # edit the bill
+                       
         resp = self.client.post(
             f"/demo/edit/{bill_id}",
             data={
@@ -235,27 +235,27 @@ class TestHistory(IhatemoneyTestCase):
             follow_redirects=True,
         )
         assert resp.status_code == 200
-        # delete the bill
+                         
         resp = self.client.post(f"/demo/delete/{bill_id}", follow_redirects=True)
         assert resp.status_code == 200
 
-        # delete user using POST method
+                                       
         resp = self.client.post(
             f"/demo/members/{user_id}/delete", follow_redirects=True
         )
         assert resp.status_code == 200
 
     def test_disable_clear_no_new_records(self):
-        # Disable logging
+                         
         self.change_privacy_to("demo", LoggingMode.DISABLED)
 
-        # Ensure we can't clear history with a GET or with a password-less POST
+                                                                               
         resp = self.client.get("/demo/erase_history")
         assert resp.status_code == 405
         resp = self.client.post("/demo/erase_history", follow_redirects=True)
         assert "Error deleting project history" in resp.data.decode("utf-8")
 
-        # List history
+                      
         resp = self.client.get("/demo/history")
         assert resp.status_code == 200
         assert (
@@ -271,7 +271,7 @@ class TestHistory(IhatemoneyTestCase):
             "utf-8"
         )
 
-        # Clear Existing Entries
+                                
         resp = self.client.post(
             "/demo/erase_history",
             data={"password": "demo"},
@@ -280,19 +280,19 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.status_code == 200
         self.assert_empty_history_logging_disabled()
 
-        # Do lots of database operations & check that there's still no history
+                                                                              
         self.do_misc_database_operations(LoggingMode.DISABLED)
 
         self.assert_empty_history_logging_disabled()
 
     def test_clear_ip_records(self):
-        # Enable IP Recording
+                             
         self.change_privacy_to("demo", LoggingMode.RECORD_IP)
 
-        # Do lots of database operations to generate IP address entries
+                                                                       
         self.do_misc_database_operations(LoggingMode.RECORD_IP)
 
-        # Disable IP Recording
+                              
         self.change_privacy_to("123456", LoggingMode.ENABLED)
 
         resp = self.client.get("/demo/history")
@@ -310,7 +310,7 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.data.decode("utf-8").count("127.0.0.1") == 12
         assert resp.data.decode("utf-8").count("<td> -- </td>") == 1
 
-        # Generate more operations to confirm additional IP info isn't recorded
+                                                                               
         self.do_misc_database_operations(LoggingMode.ENABLED)
 
         resp = self.client.get("/demo/history")
@@ -318,7 +318,7 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.data.decode("utf-8").count("127.0.0.1") == 12
         assert resp.data.decode("utf-8").count("<td> -- </td>") == 7
 
-        # Ensure we can't clear IP data with a GET or with a password-less POST
+                                                                               
         resp = self.client.get("/demo/strip_ip_addresses")
         assert resp.status_code == 405
         resp = self.client.post("/demo/strip_ip_addresses", follow_redirects=True)
@@ -329,7 +329,7 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.data.decode("utf-8").count("127.0.0.1") == 12
         assert resp.data.decode("utf-8").count("<td> -- </td>") == 7
 
-        # Clear IP Data
+                       
         resp = self.client.post(
             "/demo/strip_ip_addresses",
             data={"password": "123456"},
@@ -353,7 +353,7 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.data.decode("utf-8").count("<td> -- </td>") == 19
 
     def test_logs_for_common_actions(self):
-        # adds a member to this project
+                                       
         resp = self.client.post(
             "/demo/members/add", data={"name": "zorglub"}, follow_redirects=True
         )
@@ -365,7 +365,7 @@ class TestHistory(IhatemoneyTestCase):
             "utf-8"
         )
 
-        # create a bill
+                       
         resp = self.client.post(
             "/demo/add",
             data={
@@ -386,7 +386,7 @@ class TestHistory(IhatemoneyTestCase):
             "utf-8"
         )
 
-        # edit the bill
+                       
         resp = self.client.post(
             "/demo/edit/1",
             data={
@@ -423,7 +423,7 @@ class TestHistory(IhatemoneyTestCase):
             f"Bill {em_surround('fromage à raclette')} renamed to"
         ) < resp.data.decode("utf-8").index("Amount changed")
 
-        # delete the bill
+                         
         resp = self.client.post("/demo/delete/1", follow_redirects=True)
         assert resp.status_code == 200
 
@@ -431,7 +431,7 @@ class TestHistory(IhatemoneyTestCase):
         assert resp.status_code == 200
         assert f"Bill {em_surround('new thing')} removed" in resp.data.decode("utf-8")
 
-        # edit user
+                   
         resp = self.client.post(
             "/demo/members/1/edit",
             data={"weight": 2, "name": "new name"},
@@ -458,7 +458,7 @@ class TestHistory(IhatemoneyTestCase):
             f"Participant {em_surround('zorglub')} renamed"
         ) < resp.data.decode("utf-8").index("weight changed")
 
-        # delete user using POST method
+                                       
         resp = self.client.post("/demo/members/1/delete", follow_redirects=True)
         assert resp.status_code == 200
 
@@ -469,11 +469,11 @@ class TestHistory(IhatemoneyTestCase):
         )
 
     def test_double_bill_double_person_edit_second(self):
-        # add two members
+                         
         self.client.post("/demo/members/add", data={"name": "User 1"})
         self.client.post("/demo/members/add", data={"name": "User 2"})
 
-        # add two bills
+                       
         self.client.post(
             "/demo/add",
             data={
@@ -497,13 +497,13 @@ class TestHistory(IhatemoneyTestCase):
             },
         )
 
-        # Should be 5 history entries at this point
+                                                   
         resp = self.client.get("/demo/history")
         assert resp.status_code == 200
         assert resp.data.decode("utf-8").count("<td> -- </td>") == 5
         assert "127.0.0.1" not in resp.data.decode("utf-8")
 
-        # Edit ONLY the amount on the first bill
+                                                
         self.client.post(
             "/demo/edit/1",
             data={
@@ -535,16 +535,16 @@ class TestHistory(IhatemoneyTestCase):
             resp.data.decode("utf-8"),
         ), resp.data.decode("utf-8")
 
-        # Should be 6 history entries at this point
+                                                   
         assert resp.data.decode("utf-8").count("<td> -- </td>") == 6
         assert "127.0.0.1" not in resp.data.decode("utf-8")
 
     def test_bill_add_remove_add(self):
-        # add two members
+                         
         self.client.post("/demo/members/add", data={"name": "User 1"})
         self.client.post("/demo/members/add", data={"name": "User 2"})
 
-        # add 1 bill
+                    
         self.client.post(
             "/demo/add",
             data={
@@ -557,7 +557,7 @@ class TestHistory(IhatemoneyTestCase):
             },
         )
 
-        # delete the bill
+                         
         self.client.post("/demo/delete/1", follow_redirects=True)
 
         resp = self.client.get("/demo/history")
@@ -567,7 +567,7 @@ class TestHistory(IhatemoneyTestCase):
         assert f"Bill {em_surround('Bill 1')} added" in resp.data.decode("utf-8")
         assert f"Bill {em_surround('Bill 1')} removed" in resp.data.decode("utf-8")
 
-        # Add a new bill
+                        
         self.client.post(
             "/demo/add",
             data={
@@ -602,7 +602,7 @@ class TestHistory(IhatemoneyTestCase):
         b1 = models.Bill(what="Bill 1", payer_id=u1.id, owers=[u2], amount=10)
         b2 = models.Bill(what="Bill 2", payer_id=u2.id, owers=[u2], amount=11)
 
-        # This db commit exposes the "spurious owers edit" bug
+                                                              
         models.db.session.add(b1)
         models.db.session.commit()
 
@@ -612,7 +612,7 @@ class TestHistory(IhatemoneyTestCase):
         history_list = history.get_history(self.get_project("demo"))
         assert len(history_list) == 5
 
-        # Change just the amount
+                                
         b1.amount = 5
         models.db.session.commit()
 
@@ -625,10 +625,10 @@ class TestHistory(IhatemoneyTestCase):
     def test_delete_history_with_project(self):
         self.post_project("raclette", password="party")
 
-        # add participants
+                          
         self.client.post("/raclette/members/add", data={"name": "zorglub"})
 
-        # add bill
+                  
         self.client.post(
             "/raclette/add",
             data={
@@ -642,15 +642,15 @@ class TestHistory(IhatemoneyTestCase):
             },
         )
 
-        # Delete project
+                        
         self.client.post(
             "/raclette/delete",
             data={"password": "party"},
         )
 
-        # Recreate it
+                     
         self.post_project("raclette", password="party")
 
-        # History should be equal to project creation
+                                                     
         history_list = history.get_history(self.get_project("raclette"))
         assert len(history_list) == 1
