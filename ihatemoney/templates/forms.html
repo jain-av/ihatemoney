@@ -180,7 +180,6 @@
             </p>
             <div  class="d-flex flex-column flex-wrap overflow-auto" style="max-height: 20em;">
                 {% for choices in form.payed_for.iter_choices() | sort(attribute='1') %}
-                {# Compatibility with wtforms<3.1 #}
                 {% set key = choices[0] %}
                 {% set value = choices[1] %}
                 {% set checked = choices[2] %}
