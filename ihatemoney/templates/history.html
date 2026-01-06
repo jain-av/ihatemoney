@@ -24,7 +24,6 @@
         {{ _("Enabled Project History & IP Address Recording") }}
     {% endif %}
 {% else %}
-    {# Should be unreachable #}
     {{ _("History Settings Changed") }}
 {% endif %}
 {% endmacro %}
@@ -40,7 +39,6 @@
 {% endmacro %}
 
 {% macro clear_history_modals() %}
-<!-- Modal -->
 <div id="confirm-ip-delete" class="modal fade show" role="dialog">
     <div class="modal-dialog" role="document">
         <form class="modal-content" action="{{ url_for(".strip_ip_addresses") }}" method="post">
@@ -60,7 +58,6 @@
         </form>
     </div>
 </div>
-<!-- Modal -->
     <div id="confirm-erase" class="modal fade show" role="dialog">
     <div class="modal-dialog" role="document">
         <form class="modal-content" action="{{ url_for(".erase_history") }}" method="post">
@@ -184,7 +181,6 @@
                     ></i>
                 </div>
                 <div class="history_text">
-                {# Common value setting #}
                 {% set name=event.object_desc|em_surround %}
 
                 {% if event.operation_type == OperationType.INSERT %}
@@ -266,7 +262,6 @@
                     {% endif %}
 
                 {% else %}
-                    {# Should be unreachable #}
                     {% if event.object_type == "Project" %}
                         {% trans %}Project {{ name }} changed in an unknown way{% endtrans %}
                     {% elif event.object_type == "Bill" %}
