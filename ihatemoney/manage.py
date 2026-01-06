@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import getpass
 import os
 import random
@@ -16,7 +14,7 @@ from ihatemoney.utils import create_jinja_env, generate_password_hash
 
 @click.group(cls=FlaskGroup, create_app=create_app)
 def cli():
-    """IHateMoney Management script"""
+    pass
 
 
 @cli.command(
@@ -24,7 +22,6 @@ def cli():
 )
 @click.pass_context
 def runserver(ctx):
-    """Deprecated, use the "run" command instead"""
     click.secho(
         '"runserver" is deprecated, please use the standard "run" flask command',
         fg="red",
@@ -35,7 +32,6 @@ def runserver(ctx):
 
 @cli.command(name="generate_password_hash")
 def password_hash():
-    """Get password from user and hash it without printing it in clear text."""
     password = getpass.getpass(prompt="Password: ")
     print(generate_password_hash(password))
 
@@ -54,8 +50,6 @@ def password_hash():
     ),
 )
 def generate_config(config_file):
-    """Generate front-end server configuration"""
-
     def gen_secret_key():
         return "".join(
             [
@@ -85,7 +79,6 @@ def generate_config(config_file):
 @cli.command()
 @click.argument("project_name")
 def delete_project(project_name):
-    """Delete a project"""
     project = Project.query.get(project_name)
     if project is None:
         click.secho(f'Project "{project_name}" not found', fg="red")
@@ -96,10 +89,9 @@ def delete_project(project_name):
 
 @cli.command()
 @click.argument("print_emails", default=False)
-@click.argument("bills", default=0)  # default values will get total projects
-@click.argument("days", default=73000)  # approximately 200 years
+@click.argument("bills", default=0)
+@click.argument("days", default=73000)
 def get_project_count(print_emails, bills, days):
-    """Count projets with at least x bills and at less than x days old"""
     projects = [
         pr
         for pr in Project.query.all()

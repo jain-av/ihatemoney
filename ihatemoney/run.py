@@ -32,10 +32,10 @@ from ihatemoney.web import main as web_interface
 
 
 def setup_database(app):
-    """Prepare the database. Create tables, run migrations etc."""
+    
 
     def _pre_alembic_db():
-        """Checks if we are migrating from a pre-alembic ihatemoney"""
+        
         con = db.engine.connect()
         tables_exist = db.engine.dialect.has_table(con, "project")
         alembic_setup = db.engine.dialect.has_table(con, "alembic_version")
@@ -56,22 +56,16 @@ def setup_database(app):
 
     if _pre_alembic_db():
         with app.app_context():
-            # fake the first migration
+            
             stamp(migrations_path, revision="b9a10d5d63ce")
 
-    # auto-execute migrations on runtime
+    
     with app.app_context():
         upgrade(migrations_path)
 
 
 def load_configuration(app, configuration=None):
-    """Find the right configuration file for the application and load it.
-
-    By order of preference:
-    - Use the IHATEMONEY_SETTINGS_FILE_PATH env var if defined ;
-    - If not, use /etc/ihatemoney/ihatemoney.cfg ;
-    - Otherwise, load the default settings.
-    """
+    
 
     env_var_config = os.environ.get("IHATEMONEY_SETTINGS_FILE_PATH")
     app.config.from_object("ihatemoney.default_settings")
@@ -81,7 +75,7 @@ def load_configuration(app, configuration=None):
         app.config.from_pyfile(env_var_config)
     else:
         app.config.from_pyfile("ihatemoney.cfg", silent=True)
-    # Configure custom JSONEncoder used by the API
+    
     app.config["RESTFUL_JSON"] = {"cls": IhmJSONEncoder}
 
 
@@ -92,9 +86,9 @@ def validate_configuration(app):
             + " user impersonation. Please update your configuration file.",
             UserWarning,
         )
-    # Deprecations
+    
     if "DEFAULT_MAIL_SENDER" in app.config:
-        # Since flask-mail  0.8
+        
         warnings.warn(
             "DEFAULT_MAIL_SENDER is deprecated in favor of MAIL_DEFAULT_SENDER"
             + " and will be removed in further version",
@@ -114,7 +108,7 @@ def validate_configuration(app):
         )
 
     if "pbkdf2:" not in app.config["ADMIN_PASSWORD"] and app.config["ADMIN_PASSWORD"]:
-        # Since 2.0
+        
         warnings.warn(
             "The way Ihatemoney stores your ADMIN_PASSWORD has changed. You are using an unhashed"
             + " ADMIN_PASSWORD, which is not supported anymore and won't let you access your admin"
@@ -138,11 +132,11 @@ def create_app(
         instance_relative_config=instance_relative_config,
     )
 
-    # If we need to load external JS/CSS/image resources, it needs to be added here, see
-    # https://github.com/wntrblm/flask-talisman#content-security-policy
+    
+    
     csp = {
         "default-src": ["'self'"],
-        # We have several inline javascript scripts :(
+        
         "script-src": ["'self'", "'unsafe-inline'"],
         "object-src": "'none'",
         "img-src": ["'self'", "data:"],
@@ -151,20 +145,20 @@ def create_app(
 
     Talisman(
         app,
-        # Forcing HTTPS is the job of a reverse proxy
+        
         force_https=False,
-        # This is handled separately through the SESSION_COOKIE_SECURE Flask setting
+        
         session_cookie_secure=False,
         content_security_policy=csp,
     )
 
-    # If a configuration object is passed, use it. Otherwise try to find one.
+    
     load_configuration(app, configuration)
     app.wsgi_app = PrefixedWSGI(app)
 
-    # Get client's real IP
-    # Note(0livd): When running in a non-proxy setup, is vulnerable to requests
-    # with a forged X-FORWARDED-FOR header
+    
+    
+    
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
     validate_configuration(app)
@@ -173,17 +167,17 @@ def create_app(
     app.register_error_handler(404, page_not_found)
     limiter.init_app(app)
 
-    # Configure the a, root="main"pplication
+    
     setup_database(app)
 
-    # Setup Currency Cache
+    
     CurrencyConverter()
 
     mail = Mail()
     mail.init_app(app)
     app.mail = mail
 
-    # Jinja filters
+    
     app.jinja_env.globals["static_include"] = static_include
     app.jinja_env.globals["locale_from_iso"] = locale_from_iso
     app.jinja_env.filters["minimal_round"] = minimal_round
@@ -191,11 +185,11 @@ def create_app(
     app.jinja_env.filters["localize_list"] = localize_list
     app.jinja_env.filters["from_timestamp"] = datetime.fromtimestamp
 
-    # Translations and time zone (used to display dates).  The timezone is
-    # taken from the BABEL_DEFAULT_TIMEZONE settings, and falls back to
-    # the local timezone of the server OS by using LOCALTZ.
+    
+    
+    
 
-    # On some bare systems, LOCALTZ is a fake object unusable by Flask-Babel, so use UTC instead
+    
     default_timezone = "UTC"
     try:
         pytz.timezone(str(LOCALTZ))
@@ -204,8 +198,8 @@ def create_app(
         pass
 
     def get_locale():
-        # get the lang from the session if defined, fallback on the browser "accept
-        # languages" header.
+        
+        
         lang = session.get(
             "lang",
             request.accept_languages.best_match(app.config["SUPPORTED_LANGUAGES"]),
@@ -214,14 +208,14 @@ def create_app(
         return lang
 
     if hasattr(Babel, "localeselector"):
-        # Compatibility for flask-babel <= 2
+        
         babel = Babel(app, default_timezone=default_timezone)
         babel.localeselector(get_locale)
     else:
         Babel(app, default_timezone=default_timezone, locale_selector=get_locale)
 
-    # Undocumented currencyformat filter from flask_babel is forwarding to Babel format_currency
-    # We overwrite it to remove the currency sign ¤ when there is no currency
+    
+    
     @pass_context
     def currency(context, number, currency=None, *args, **kwargs):
         if currency is None:

@@ -19,17 +19,10 @@ if continuum_version != "1.3.14":
 
 
 class PatchedTransactionFactory(TransactionFactory):
-    """
-    Monkeypatching TransactionFactory for
-    https://github.com/kvesteri/sqlalchemy-continuum/issues/264
-    There is no easy way to really remove Sequence without redefining the whole method. So,
-    this is a copy/paste. :/
-    """
+    
 
     def create_class(self, manager):
-        """
-        Create Transaction class.
-        """
+        
 
         class Transaction(manager.declarative_base, TransactionBase):
             __tablename__ = "transaction"
@@ -37,7 +30,7 @@ class PatchedTransactionFactory(TransactionFactory):
 
             id = sa.Column(
                 sa.types.BigInteger,
-                # sa.schema.Sequence('transaction_id_seq'),
+                
                 primary_key=True,
                 autoincrement=True,
             )
@@ -50,7 +43,7 @@ class PatchedTransactionFactory(TransactionFactory):
                 Base = manager.declarative_base
                 try:
                     registry = Base.registry._class_registry
-                except AttributeError:  # SQLAlchemy < 1.4
+                except AttributeError:  
                     registry = Base._decl_class_registry
 
                 if isinstance(user_cls, six.string_types):
@@ -84,9 +77,9 @@ class PatchedTransactionFactory(TransactionFactory):
                     (
                         "%s=%r" % (field, value)
                         if not isinstance(value, six.integer_types)
-                        # We want the following line to ensure that longs get
-                        # shown without the ugly L suffix on python 2.x
-                        # versions
+                        
+                        
+                        
                         else "%s=%d" % (field, value)
                         for field, value in field_values.items()
                     )
