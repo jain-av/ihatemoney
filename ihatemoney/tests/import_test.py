@@ -82,7 +82,7 @@ class CommonTestCase(object):
                 self.data[d]["currency"] = currencies[d]
 
         def test_import_currencies_in_empty_project_with_currency(self):
-            # Import JSON with currencies in an empty project with a default currency
+                                                                                     
 
             self.post_project("raclette", default_currency="EUR")
             self.login("raclette")
@@ -94,10 +94,10 @@ class CommonTestCase(object):
 
             bills = project.get_pretty_bills()
 
-            # Check if all bills have been added
+                                                
             assert len(bills) == len(self.data)
 
-            # Check if name of bills are ok
+                                           
             b = [e["what"] for e in bills]
             b.sort()
             ref = [e["what"] for e in self.data]
@@ -105,7 +105,7 @@ class CommonTestCase(object):
 
             assert b == ref
 
-            # Check if other informations in bill are ok
+                                                        
             for d in self.data:
                 for b in bills:
                     if b["what"] == d["what"]:
@@ -122,9 +122,9 @@ class CommonTestCase(object):
                         assert list_project == list_json
 
         def test_import_single_currency_in_empty_project_without_currency(self):
-            # Import JSON with a single currency in an empty project with no
-            # default currency. It should work by stripping the currency from
-            # bills.
+                                                                            
+                                                                             
+                    
 
             self.post_project("raclette")
             self.login("raclette")
@@ -136,10 +136,10 @@ class CommonTestCase(object):
 
             bills = project.get_pretty_bills()
 
-            # Check if all bills have been added
+                                                
             assert len(bills) == len(self.data)
 
-            # Check if name of bills are ok
+                                           
             b = [e["what"] for e in bills]
             b.sort()
             ref = [e["what"] for e in self.data]
@@ -147,13 +147,13 @@ class CommonTestCase(object):
 
             assert b == ref
 
-            # Check if other informations in bill are ok
+                                                        
             for d in self.data:
                 for b in bills:
                     if b["what"] == d["what"]:
                         assert b["payer_name"] == d["payer_name"]
                         assert b["amount"] == d["amount"]
-                        # Currency should have been stripped
+                                                            
                         assert b["currency"] == "XXX"
                         assert b["payer_weight"] == d["payer_weight"]
                         assert b["date"] == d["date"]
@@ -165,8 +165,8 @@ class CommonTestCase(object):
                         assert list_project == list_json
 
         def test_import_multiple_currencies_in_empty_project_without_currency(self):
-            # Import JSON with multiple currencies in an empty project with no
-            # default currency. It should fail.
+                                                                              
+                                               
 
             self.post_project("raclette")
             self.login("raclette")
@@ -174,17 +174,17 @@ class CommonTestCase(object):
             project = self.get_project("raclette")
 
             self.populate_data_with_currencies(["EUR", "CAD", "EUR"])
-            # Import should fail
+                                
             self.import_project("raclette", self.generate_form_data(self.data), 400)
 
             bills = project.get_pretty_bills()
 
-            # Check that there are no bills
+                                           
             assert len(bills) == 0
 
         def test_import_no_currency_in_empty_project_with_currency(self):
-            # Import JSON without currencies (from ihatemoney < 5) in an empty
-            # project with a default currency.
+                                                                              
+                                              
 
             self.post_project("raclette", default_currency="EUR")
             self.login("raclette")
@@ -195,10 +195,10 @@ class CommonTestCase(object):
 
             bills = project.get_pretty_bills()
 
-            # Check if all bills have been added
+                                                
             assert len(bills) == len(self.data)
 
-            # Check if name of bills are ok
+                                           
             b = [e["what"] for e in bills]
             b.sort()
             ref = [e["what"] for e in self.data]
@@ -206,13 +206,13 @@ class CommonTestCase(object):
 
             assert b == ref
 
-            # Check if other informations in bill are ok
+                                                        
             for d in self.data:
                 for b in bills:
                     if b["what"] == d["what"]:
                         assert b["payer_name"] == d["payer_name"]
                         assert b["amount"] == d["amount"]
-                        # All bills are converted to default project currency
+                                                                             
                         assert b["currency"] == "EUR"
                         assert b["payer_weight"] == d["payer_weight"]
                         assert b["date"] == d["date"]
@@ -224,8 +224,8 @@ class CommonTestCase(object):
                         assert list_project == list_json
 
         def test_import_no_currency_in_empty_project_without_currency(self):
-            # Import JSON without currencies (from ihatemoney < 5) in an empty
-            # project with no default currency.
+                                                                              
+                                               
 
             self.post_project("raclette")
             self.login("raclette")
@@ -236,10 +236,10 @@ class CommonTestCase(object):
 
             bills = project.get_pretty_bills()
 
-            # Check if all bills have been added
+                                                
             assert len(bills) == len(self.data)
 
-            # Check if name of bills are ok
+                                           
             b = [e["what"] for e in bills]
             b.sort()
             ref = [e["what"] for e in self.data]
@@ -247,7 +247,7 @@ class CommonTestCase(object):
 
             assert b == ref
 
-            # Check if other informations in bill are ok
+                                                        
             for d in self.data:
                 for b in bills:
                     if b["what"] == d["what"]:
@@ -264,7 +264,7 @@ class CommonTestCase(object):
                         assert list_project == list_json
 
         def test_import_partial_project(self):
-            # Import a JSON in a project with already existing data
+                                                                   
 
             self.post_project("raclette")
             self.login("raclette")
@@ -294,10 +294,10 @@ class CommonTestCase(object):
 
             bills = project.get_pretty_bills()
 
-            # Check if all bills have been added
+                                                
             assert len(bills) == len(self.data)
 
-            # Check if name of bills are ok
+                                           
             b = [e["what"] for e in bills]
             b.sort()
             ref = [e["what"] for e in self.data]
@@ -305,7 +305,7 @@ class CommonTestCase(object):
 
             assert b == ref
 
-            # Check if other informations in bill are ok
+                                                        
             for d in self.data:
                 for b in bills:
                     if b["what"] == d["what"]:
@@ -345,23 +345,23 @@ class CommonTestCase(object):
                 }
             ]
             for data in [data_wrong_keys, data_amount_missing]:
-                # Import should fail
+                                    
                 self.import_project("raclette", self.generate_form_data(data), 400)
 
 
 class TestExport(IhatemoneyTestCase):
     def test_export(self):
-        # Export a simple project without currencies
+                                                    
 
         self.post_project("raclette")
 
-        # add participants
+                          
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "jeanne"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
+                      
         self.client.post(
             "/raclette/add",
             data={
@@ -398,7 +398,7 @@ class TestExport(IhatemoneyTestCase):
             },
         )
 
-        # generate json export of bills
+                                       
         resp = self.client.get("/raclette/export/bills.json")
         expected = [
             {
@@ -434,7 +434,7 @@ class TestExport(IhatemoneyTestCase):
         ]
         assert json.loads(resp.data.decode("utf-8")) == expected
 
-        # generate csv export of bills
+                                      
         resp = self.client.get("/raclette/export/bills.csv")
         expected = [
             "date,what,bill_type,amount,currency,payer_name,payer_weight,owers",
@@ -447,7 +447,7 @@ class TestExport(IhatemoneyTestCase):
         for i, line in enumerate(expected):
             assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
 
-        # generate json export of transactions
+                                              
         resp = self.client.get("/raclette/export/transactions.json")
         expected = [
             {
@@ -467,7 +467,7 @@ class TestExport(IhatemoneyTestCase):
 
         assert json.loads(resp.data.decode("utf-8")) == expected
 
-        # generate csv export of transactions
+                                             
         resp = self.client.get("/raclette/export/transactions.csv")
 
         expected = [
@@ -481,7 +481,7 @@ class TestExport(IhatemoneyTestCase):
         for i, line in enumerate(expected):
             assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
 
-        # wrong export_format should return a 404
+                                                 
         resp = self.client.get("/raclette/export/transactions.wrong")
         assert resp.status_code == 404
 
@@ -489,13 +489,13 @@ class TestExport(IhatemoneyTestCase):
     def test_export_with_currencies(self):
         self.post_project("raclette", default_currency="EUR")
 
-        # add participants
+                          
         self.client.post("/raclette/members/add", data={"name": "zorglub", "weight": 2})
         self.client.post("/raclette/members/add", data={"name": "jeanne"})
         self.client.post("/raclette/members/add", data={"name": "tata"})
         self.client.post("/raclette/members/add", data={"name": "pépé"})
 
-        # create bills
+                      
         self.client.post(
             "/raclette/add",
             data={
@@ -535,7 +535,7 @@ class TestExport(IhatemoneyTestCase):
             },
         )
 
-        # generate json export of bills
+                                       
         resp = self.client.get("/raclette/export/bills.json")
         expected = [
             {
@@ -571,7 +571,7 @@ class TestExport(IhatemoneyTestCase):
         ]
         assert json.loads(resp.data.decode("utf-8")) == expected
 
-        # generate csv export of bills
+                                      
         resp = self.client.get("/raclette/export/bills.csv")
         expected = [
             "date,what,bill_type,amount,currency,payer_name,payer_weight,owers",
@@ -584,7 +584,7 @@ class TestExport(IhatemoneyTestCase):
         for i, line in enumerate(expected):
             assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
 
-        # generate json export of transactions (in EUR!)
+                                                        
         resp = self.client.get("/raclette/export/transactions.json")
         expected = [
             {
@@ -604,7 +604,7 @@ class TestExport(IhatemoneyTestCase):
 
         assert json.loads(resp.data.decode("utf-8")) == expected
 
-        # generate csv export of transactions
+                                             
         resp = self.client.get("/raclette/export/transactions.csv")
 
         expected = [
@@ -618,11 +618,11 @@ class TestExport(IhatemoneyTestCase):
         for i, line in enumerate(expected):
             assert set(line.split(",")) == set(received_lines[i].strip("\r").split(","))
 
-        # Change project currency to CAD
+                                        
         project = self.get_project("raclette")
         project.switch_currency("CAD")
 
-        # generate json export of transactions (now in CAD!)
+                                                            
         resp = self.client.get("/raclette/export/transactions.json")
         expected = [
             {
@@ -642,7 +642,7 @@ class TestExport(IhatemoneyTestCase):
 
         assert json.loads(resp.data.decode("utf-8")) == expected
 
-        # generate csv export of transactions
+                                             
         resp = self.client.get("/raclette/export/transactions.csv")
 
         expected = [
@@ -659,10 +659,10 @@ class TestExport(IhatemoneyTestCase):
     def test_export_escape_formulae(self):
         self.post_project("raclette", default_currency="EUR")
 
-        # add participants
+                          
         self.client.post("/raclette/members/add", data={"name": "zorglub"})
 
-        # create bills
+                      
         self.client.post(
             "/raclette/add",
             data={
@@ -676,7 +676,7 @@ class TestExport(IhatemoneyTestCase):
             },
         )
 
-        # generate csv export of bills
+                                      
         resp = self.client.get("/raclette/export/bills.csv")
         expected = [
             "date,what,bill_type,amount,currency,payer_name,payer_weight,owers",

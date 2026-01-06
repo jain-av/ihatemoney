@@ -1,4 +1,3 @@
-# Verbose and documented settings are in conf-templates/ihatemoney.cfg.j2
 DEBUG = SQLACHEMY_ECHO = False
 SQLALCHEMY_DATABASE_URI = "sqlite:////tmp/ihatemoney.db"
 SQLALCHEMY_TRACK_MODIFICATIONS = False
