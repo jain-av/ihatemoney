@@ -31,7 +31,6 @@ from ihatemoney.utils import (
 )
 from ihatemoney.web import main as web_interface
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
