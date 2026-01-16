@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import os
 import os.path
 import warnings
@@ -243,7 +244,9 @@ def create_app(
 
 
 def main():
-    print("HELLO WORLD")
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info("Hello world")
     app = create_app()
     app.run(host="0.0.0.0", debug=True)
 
