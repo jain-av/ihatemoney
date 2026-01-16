@@ -31,6 +31,10 @@ from ihatemoney.utils import (
 )
 from ihatemoney.web import main as web_interface
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 def setup_database(app):
     """Prepare the database. Create tables, run migrations etc."""
@@ -244,8 +248,6 @@ def create_app(
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
     logger.info("Hello world")
     app = create_app()
     app.run(host="0.0.0.0", debug=True)
