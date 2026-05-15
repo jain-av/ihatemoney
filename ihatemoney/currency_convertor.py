@@ -221,6 +221,10 @@ class CurrencyConverter(object, metaclass=Singleton):
             return amount
 
         rates = self.get_rates()
+        if source_currency not in rates or dest_currency not in rates:
+            raise ValueError(
+                f"Exchange rate unavailable for {source_currency}->{dest_currency}"
+            )
         source_rate = rates[source_currency]
         dest_rate = rates[dest_currency]
         new_amount = (float(amount) / source_rate) * dest_rate
